@@ -4,6 +4,8 @@ import java.net.URLConnection;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -20,15 +22,23 @@ public class FilingProcessor {
 	private FilingData filingData = new FilingData();
 	private String[] tags;
 	private String ticker;
-
+	private FilingTag[] SupportedTags =  {new FilingTag("eps","earnings per share"), new FilingTag("epsd", "earnings per share"),new FilingTag("income","income")};
+	
+	
 	public FilingProcessor(String ticker, String[] tags) {
 		this.tags = tags;
 		this.ticker = ticker;
 
 		populateFilings("10-");
-
 	}
+	
+	public FilingProcessor(String ticker) {
+		this.ticker = ticker;
 
+		populateFilings("10-");
+	}
+	
+	
 	public void bufferAllFilings() {
 
 		// load all the annuals avail
@@ -38,6 +48,17 @@ public class FilingProcessor {
 		// load only the 3 most recent quarters
 		populateFilings("10-Q");
 		populateFilingData(3);
+	}
+	
+	public void setTags(String[] tags) {
+		this.tags = tags;
+	}
+	
+	public void setTag(String tag) {		
+		// convert to string array from a single string
+		String[] tmp = new String[1];
+		tmp[0] = tag;		
+		this.tags = tmp;
 	}
 
 	public void bufferMostRecentFiling() {
@@ -308,6 +329,7 @@ public class FilingProcessor {
 
 	}
 
+	// Returns a string representing the filing data preview
 	public String getFilingPreview() {
 		// console output of the data we have parsed
 
@@ -341,6 +363,75 @@ public class FilingProcessor {
 		}
 
 		return output;
-
 	}
+	
+	// Returns an array of string descriptions that represent the supported SEC tags
+	public String[] getArrayOfSupportedTagDescriptions() {
+		String[] tmp = new String[SupportedTags.length];
+		
+		for (int i=0; i<SupportedTags.length; i++) {
+			tmp[i] = SupportedTags[i].getFullDescription();
+		}		
+		return tmp;
+	}
+	
+	// Returns an array of the string tags that represent the supported SEC tags
+	public String[] getArrayOfSupportedTags() {
+		String[] tmp = new String[SupportedTags.length];
+		
+		for (int i=0; i<SupportedTags.length; i++) {
+			tmp[i] = SupportedTags[i].getTag();
+		}		
+		return tmp;
+	}
+	
+	// Checks to see if the requested string tag is supported by the FilingProcessor
+	public boolean checkTagSupported(String tg) {		
+        // Convert String Array to List for easy contains method
+        List<String> list = Arrays.asList(this.getArrayOfSupportedTags());
+        
+        if(list.contains(tg)){
+            return true;
+        } else {
+        	return false;
+        }		
+	}
+	
+	// Get the full description from the tag name (string)
+	public String getFullTagDescription(String tg) {
+		String tmp = null;
+		
+		for (int i=0; i<SupportedTags.length; i++) {
+			if (SupportedTags[i].getTag().equals(tg)){
+				tmp = SupportedTags[i].getFullDescription();
+				break; // we found the matching tag so can leave
+			}
+		}		
+		return tmp;
+	}
+	
+	public String getTicker() {
+		return this.ticker;
+	}
+	
+	public String getFormattedStringOfSupportedTags() {
+		
+		String formatted = "";
+		
+		for (int i=0; i<SupportedTags.length; i++) {
+			String tmp = "[" + SupportedTags[i].getTag() + "] " + SupportedTags[i].getFullDescription() ;
+			
+			//Only want to append on spaces after we have more than 1 supported tag
+			//if (i>0) {
+				formatted = formatted + System.lineSeparator() + tmp;
+			//} else {
+			//	formatted = tmp;
+			//}			 
+		}		
+		
+		return formatted;
+	}
+	
 }
+
+

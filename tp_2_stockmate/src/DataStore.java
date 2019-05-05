@@ -1,4 +1,5 @@
 
+	
 public class DataStore {
 	private FileIO f;
 	private SQL sql;
@@ -13,8 +14,18 @@ public class DataStore {
 	
 	public void setupFileIO(String baseDir) {		
 		f = new FileIO(baseDir);		
-	}
+	}	
 	
+	public boolean checkFileIOValid() {
+		
+		boolean valid = false;
+		
+		if (f != null) {
+			valid =  f.checkValidBaseDirectory();			
+		}		
+		
+	   return valid;		
+	}
 	
 	
 	public void writeData(String data, String name, WriteOption option) throws Exception {

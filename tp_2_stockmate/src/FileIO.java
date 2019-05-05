@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.File;
 
 public class FileIO {
 	
@@ -12,11 +14,12 @@ public class FileIO {
 		return exists;	
 	}
 	
-	public boolean checkValidDirectory(String dirToCheck){
-		boolean exists = false;		
-		return exists;		
+	public boolean checkValidBaseDirectory(){
+		//Check if base directory is valid
+	    File tmpDir = new File(this.baseDirectory);
+		return tmpDir.isDirectory() && tmpDir.exists();		
 	}
-	
+
 	public void WriteToCSV(String data, String name) {
 			
 		
