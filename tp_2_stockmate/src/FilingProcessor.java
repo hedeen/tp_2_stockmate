@@ -18,11 +18,11 @@ import org.jsoup.select.Elements;
 
 public class FilingProcessor {
 
-	private ArrayList<Filing> filings = new ArrayList<Filing>();
-	private FilingData filingData = new FilingData();
-	private String[] tags;
-	private String ticker;
-	private FilingTag[] SupportedTags =  {new FilingTag("eps","earnings per share"), new FilingTag("epsd", "earnings per share"),new FilingTag("income","income")};
+	protected ArrayList<Filing> filings = new ArrayList<Filing>();
+	protected FilingData filingData = new FilingData();
+	protected String[] tags;
+	protected String ticker;
+	protected FilingTag[] SupportedTags =  {new FilingTag("eps","earnings per share"), new FilingTag("epsd", "earnings per share"),new FilingTag("income","income")};
 	
 	
 	public FilingProcessor(String ticker, String[] tags) {
@@ -70,7 +70,7 @@ public class FilingProcessor {
 		return this.filings.size();
 	}
 
-	private String getCIK(String ticker) {
+	protected String getCIK(String ticker) {
 		// this translates the CIK from a given ticker
 
 		Pattern pattern = Pattern.compile(".*CIK=(\\d{10}).*");
@@ -86,7 +86,7 @@ public class FilingProcessor {
 
 	}
 
-	private String getHTML(String url) {
+	protected String getHTML(String url) {
 		// turns a url into a string of raw html
 		String content = null;
 
@@ -104,7 +104,7 @@ public class FilingProcessor {
 
 	}
 
-	private void populateFilings(String filingsFilter) {
+	protected void populateFilings(String filingsFilter) {
 		// this strips the filing information from the SEC filing table
 
 		String cik = getCIK(this.ticker.toUpperCase());
@@ -134,7 +134,7 @@ public class FilingProcessor {
 
 	}
 
-	private String getURLofXML(String html) {
+	protected String getURLofXML(String html) {
 		// this returns the URL of the XML filing
 
 		Document doc = Jsoup.parse(getHTML(html));
@@ -169,7 +169,7 @@ public class FilingProcessor {
 		}
 	}
 
-	private LocalDate getContextDate(Element doc, String contextref, String dateType) {
+	protected LocalDate getContextDate(Element doc, String contextref, String dateType) {
 		// this returns a date for a given element list with a given context for a
 		// specific tag
 		String dateString;
@@ -180,7 +180,7 @@ public class FilingProcessor {
 		return LocalDate.parse(dateString);
 	}
 
-	private int getPeriodScope(Element doc, LocalDate endDate, int periodLength) {
+	protected int getPeriodScope(Element doc, LocalDate endDate, int periodLength) {
 		// this converts the passed endDate and period to standard quarterly or annual
 		// format
 		int period;
@@ -220,7 +220,7 @@ public class FilingProcessor {
 		return period;
 	}
 
-	private int getPeriodYear(Element doc, LocalDate endDate) {
+	protected int getPeriodYear(Element doc, LocalDate endDate) {
 		// this attempts to appropriate the proper reporting year since sometimes
 		// companies will have an end date that falls outside the calendar year but is
 		// reported for a different fiscal year
@@ -243,16 +243,12 @@ public class FilingProcessor {
 			periodYear = (fiscalYearFocus - 1);
 		} else if (monthsDif < 36) {
 			periodYear = (fiscalYearFocus - 2);
-		} else if (monthsDif < 48) {
-			periodYear = (fiscalYearFocus - 3);
-		} else {
-			System.out.println(endDate + "\t" + periodEndDate + "\t" + monthsDif + "\t" + fiscalYearFocus);
-		}
+		} 
 
 		return periodYear;
 	}
 
-	private int getMonths(LocalDate startDate, LocalDate endDate) {
+	protected int getMonths(LocalDate startDate, LocalDate endDate) {
 		// this returns the length in months between two dates
 		double days = (endDate.getDayOfMonth() - startDate.getDayOfMonth())
 				+ 31 * (endDate.getMonthValue() - startDate.getMonthValue())
@@ -261,7 +257,7 @@ public class FilingProcessor {
 		return len;
 	}
 
-	private void populateFilingData(int maxRpts) {
+	protected void populateFilingData(int maxRpts) {
 		// this stores the tags from the list of filings up to the requested number of
 		// reports
 
