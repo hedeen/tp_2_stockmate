@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import edu.princeton.cs.introcs.StdOut;
 
 public class Controller {
@@ -5,50 +7,35 @@ public class Controller {
 	// Setup variables and objects
 	static FilingProcessor fp;
 	static String response = "";
-	static String folder = "";
 	static DataStore ds;
+	static UI ui;
+	static DataStore.WriteOption dataOption = DataStore.WriteOption.CSV; // Default to .csv files (will ask user if they want to change)
+	
+	// program constants
+	static final String fileDateFormat = "yyyy.MM.dd.HH.mm.ss";
 
 	public static void main(String[] args) {
 
 		try {
-			// Setup variables and objects
+		
+			setupStockMate();
 
-			UI ui = new UI(UI.InterfaceOption.Console); // initialize the UI (this will be for console interaction)
-			ds = new DataStore(); // initialize the data store (this will be for CSV/TXT)
-
-			ui.displayMessageToUser(
-					"Welcome to stock mate. This tool will help you gather SEC filing data for your favorite stocks.");
-
-			// Supply a default folder if user doesn't specify
-			folder = ui.displayMessageAndGetResponse(
-					"Before we begin, please enter a local folder to save stock files:", "C:\\Stock Mate");
-
-			ds.setupFileIO(folder);
-
-			if (ds.checkFileIOValid()) {
+			if (ds.checkFileIOValid()) {				
 
 				// Sit in loop forever. If user wants to end they can close the console
 				while (true) {
 					try {
 						// File IO setup has been confirmed
-						// Proceed to ask what filing data (ticker + tag) they are interested in
-						response = ui.displayMessageAndGetResponse(
-								"Enter a ticker id to begin", "");
-						ui.displayMessageToUser("Retrieving SEC filings for " + response + "...");
-						fp = new FilingProcessor(response);
+						// Need to ask the user what ticker to begin working off of
+						initiateTickerProcessing();
 
-						if (fp.getFilingCount() > 0) {
-							// Tell user how many filings exist
-							ui.displayMessageToUser(fp.getFilingCount() + " SEC filings detected");
-
-							String tagResponse = "";
-							String loopQuestion = "What data would you like to retrieve for " + fp.getTicker()
-									+ "?" + System.lineSeparator()
-									+ "Select a tag (in brackets) from the list of supported tags "
-									+ fp.getFormattedStringOfSupportedTags()
-									+ System.lineSeparator() + "Enter 'exit' to select a new ticker";
-
-							tagResponse = ui.displayMessageAndGetResponse(loopQuestion, "");
+						if (fp.getFilingCount() > 0) {				
+							
+							// filings exist for ticker (valid)							
+							reportInitialTickerInfo();
+							
+							// Proceed to ask what filing data (ticker + tag) they are interested in
+							 String tagResponse = ui.displayMessageAndGetStringResponse(loopQuestion(), "");							
 
 							// Sit in this loop and allow them to run various queries on this stock ticker
 							while (!tagResponse.toLowerCase().equals("exit")) {
@@ -57,26 +44,14 @@ public class Controller {
 								if (fp.checkTagSupported(tagResponse)) {
 									fp.setTag(tagResponse);
 
-									String filingResponse = ui.displayMessageAndGetResponse(
-											"Would you like to return all filings [1] for " + fp.getTicker()
-													+ " or just the most recent [2]?",
-											"1");
-
-									switch (filingResponse) {
+									handleTagResponseAndReport();	
 									
-									case "1":
-										ui.displayMessageToUser("Retrieving all filings for " + fp.getTicker() + "...");
-										fp.bufferAllFilings();
-										break;
-									case "2":
-										ui.displayMessageToUser(
-												"Retrieving the most recent filings for " + fp.getTicker() + "...");
-										fp.bufferMostRecentFiling();
-										break;
-									}
-
-									ui.displayMessageToUser(fp.getFilingPreview());
-									//TODO Write to CSV file
+									// setup the filename (e.g. GOOG - eps (2019.03.....)"
+									String timeStamp = new SimpleDateFormat(fileDateFormat).format(new Date());
+									String filename = fp.getTicker() + " - " + tagResponse + " (" + timeStamp + ")";
+									
+									ds.writeData(fp.getLastFilingPreview(),filename);
+									ui.displayMessageToUser(ds.getLastWriteInfo());
 
 								} else {
 									// error - requested filing tag
@@ -85,7 +60,7 @@ public class Controller {
 								}
 
 								// Same prompt as above (while loop)
-								tagResponse = ui.displayMessageAndGetResponse(loopQuestion, "");
+								tagResponse = ui.displayMessageAndGetStringResponse(loopQuestion(), "");
 							}
 
 						} else {
@@ -134,5 +109,83 @@ public class Controller {
 //		System.out.println("The most recent income for microsoft is " + fp3.getMostRecentFilingData("income")[2]);
 
 	}
+	
+	// Constant defined loop question that is used multiple times (defined here as field for better readability)
+	private static String loopQuestion() {
+		
+		String q = 
+		 "What data would you like to retrieve for " + fp.getTicker()
+		+ "?" + System.lineSeparator()
+		+ "Select a tag (in brackets) from the list of supported tags "
+		+ fp.getFormattedStringOfSupportedTags()
+		+ System.lineSeparator() + "Enter 'exit' to select a new ticker";
+		
+		return q;
+	}
+	
+	private static void setupStockMate() throws Exception {
+		
+		ui = new UI(UI.InterfaceOption.Console); // initialize the UI (this will be for console interaction)
+		ui.displayMessageToUser(
+				"Welcome to stock mate. This tool will help you gather SEC filing data for your favorite stocks. Before we begin, let's get some setup out of the way");
+		
+		int writeOpt = ui.displayMessageAndGetIntResponse("Please select how you would like your data stored [1] CSV files, [2] TXT files", 1, 2, 2); // text files default			
+		
+		switch (writeOpt) {
+	
+		case 1: 
+			ds = new DataStore(DataStore.WriteOption.CSV); // initialize the data store	
+			String tmp1 = ui.displayMessageAndGetStringResponse(
+					"You have selected to create .csv files. Please enter a local folder to save stock files: ","C:\\Stock Mate");
+			ds.setupFileIO(tmp1);
+			break;
+		case 2:
+			ds = new DataStore(DataStore.WriteOption.TXT); // initialize the data store	
+			String tmp2 = ui.displayMessageAndGetStringResponse(
+					"You have selected to create .txt files. Please enter a local folder to save stock files: ","C:\\Stock Mate");
+			ds.setupFileIO(tmp2);
+			break;			
+		case 3:
+			ds.setupSQL(""); // not currently supported
+			break;
+		}		
 
+		
+	}
+	
+	private static void initiateTickerProcessing() {
+		response = ui.displayMessageAndGetStringResponse(
+				"Enter a ticker id", "");
+		ui.displayMessageToUser("Retrieving SEC filings for " + response + "...");
+		fp = new FilingProcessor(response);
+	}
+
+	
+	private static void reportInitialTickerInfo() {
+		// Tell user how many filings exist
+		ui.displayMessageToUser(fp.getFilingCount() + " SEC filings detected");
+
+	}
+	
+	private static void handleTagResponseAndReport() {
+		int filingResponse = ui.displayMessageAndGetIntResponse(
+				"Would you like to return all filings [1] for " + fp.getTicker()
+						+ " or just the most recent [2]?",1,2,2);
+
+		switch (filingResponse) {
+		
+		case 1:
+			ui.displayMessageToUser("Retrieving all filings for " + fp.getTicker() + "...");
+			fp.bufferAllFilings();
+			break;
+		case 2:
+			ui.displayMessageToUser(
+					"Retrieving the most recent filings for " + fp.getTicker() + "...");
+			fp.bufferMostRecentFiling();
+			break;
+		}		
+
+		// Show preview to user before writing to datastore
+		ui.displayMessageToUser(fp.getFilingPreview());
+	}
 }

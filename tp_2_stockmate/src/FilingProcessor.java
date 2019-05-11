@@ -23,7 +23,7 @@ public class FilingProcessor {
 	protected String[] tags;
 	protected String ticker;
 	protected FilingTag[] SupportedTags =  {new FilingTag("eps","earnings per share"), new FilingTag("epsd", "earnings per share"),new FilingTag("income","income")};
-	
+	private String filingPreviewCache = "";
 	
 	public FilingProcessor(String ticker, String[] tags) {
 		this.tags = tags;
@@ -358,6 +358,8 @@ public class FilingProcessor {
 			}
 		}
 
+		// Save the last filing preview so we can access it without needing to requery
+		this.filingPreviewCache = output;
 		return output;
 	}
 	
@@ -426,8 +428,11 @@ public class FilingProcessor {
 		}		
 		
 		return formatted;
-	}
+	}	
 	
+	public String getLastFilingPreview() {
+		return this.filingPreviewCache;
+	}
 }
 
 

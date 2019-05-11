@@ -32,13 +32,27 @@ public class UI {
 		}
 	}
 
-	public String displayMessageAndGetResponse(String message, String defaultResponse) {
+	public String displayMessageAndGetStringResponse(String message, String defaultResponse) {
 
 		String res = "";
 
 		switch (this.Interface) {
 		case Console:
-			res = getUserStringFromConsole(message,defaultResponse);
+			res = getUserStringFromConsole(message, defaultResponse);
+			break;
+		case GUI:
+			throw new UnsupportedOperationException("GUI interface not developed");
+		}
+		return res;
+	}
+
+	public int displayMessageAndGetIntResponse(String message, int minVal, int maxVal, int defaultResponse) {
+
+		int res = defaultResponse;
+
+		switch (this.Interface) {
+		case Console:
+			res = getUserIntFromConsole(message, minVal, maxVal, defaultResponse);
 			break;
 		case GUI:
 			throw new UnsupportedOperationException("GUI interface not developed");
@@ -50,51 +64,52 @@ public class UI {
 		System.out.println(message);
 	}
 
-	private static int getUserIntFromConsole(String prompt, int minVal, int maxVal) {
-
+	private int getUserIntFromConsole(String prompt, int minVal, int maxVal, int defaultResponse) {
 		int userInt = minVal - 1;
 
 		do {
+
 			try {
-				StdOut.println(prompt);
+				StdOut.println(prompt + " | Default = [" + defaultResponse + "]");
 				userInt = Integer.parseInt(StdIn.readLine());
 			} catch (NumberFormatException e) {
-				StdOut.println("That is not an integer, try again.");
+				userInt = defaultResponse; // If they don't enter a valid response just use the default one supplied
+				break;
 			}
 			if (userInt < minVal) {
 				StdOut.println("Min allowed value is " + minVal);
 			}
-
+			
 			if (userInt > maxVal) {
 				StdOut.println("Max allowed value is " + maxVal);
 			}
 		} while (userInt < minVal || userInt > maxVal);
 
 		return userInt;
-
 	}
 
 	private static String getUserStringFromConsole(String prompt, String defaultResponse) {
-
 		String userString = "";
+
 		do {
-			
+
 			// Modify the prompt (add on default response in brackets) if supplied
-			if (defaultResponse.length()>0) {
-				StdOut.println(prompt + " [" + defaultResponse + "]" );
+			if (defaultResponse.length() > 0) {
+				StdOut.println(prompt + " | Default = [" + defaultResponse + "]");
 			} else {
 				StdOut.println(prompt);
-			}			
-			
+			}
+
 			userString = StdIn.readLine();
 
-			// Allow loop to kick out if defaultResponse is supplied and user has not entered anything
-		} while ((userString.length() == 0) && !(defaultResponse.length()>0));
-		
+			// Allow loop to kick out if defaultResponse is supplied and user has not
+			// entered anything
+		} while ((userString.length() == 0) && !(defaultResponse.length() > 0));
+
 		if (userString.length() == 0) {
 			return defaultResponse;
 		} else {
 			return userString;
 		}
-	}	
+	}
 }
