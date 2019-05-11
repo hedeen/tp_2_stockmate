@@ -9,7 +9,7 @@ public class DataStore {
 		CSV, TXT, SQL
 	}
 
-	public DataStore(WriteOption opt) {		
+	public DataStore(WriteOption opt) {	
 		writeOpt = opt;
 	}
 
@@ -30,6 +30,10 @@ public class DataStore {
 		}
 
 		return valid;
+	}
+	
+	public int getWriteOptionInt() {
+		return this.writeOpt.ordinal();
 	}
 
 	public void writeData(String data, String name) throws Exception {
