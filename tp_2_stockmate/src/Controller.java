@@ -111,7 +111,7 @@ public class Controller {
 	}
 	
 	// Constant defined loop question that is used multiple times (defined here as field for better readability)
-	private static String loopQuestion() {
+	 static String loopQuestion() {
 		
 		String q = 
 		 "What data would you like to retrieve for " + fp.getTicker()
@@ -123,7 +123,7 @@ public class Controller {
 		return q;
 	}
 	
-	private static void setupStockMate() throws Exception {
+	static void setupStockMate() throws Exception {
 		
 		ui = new UI(UI.InterfaceOption.Console); // initialize the UI (this will be for console interaction)
 		ui.displayMessageToUser(
@@ -153,7 +153,7 @@ public class Controller {
 		
 	}
 	
-	private static void initiateTickerProcessing() {
+	 static void initiateTickerProcessing() {
 		response = ui.displayMessageAndGetStringResponse(
 				"Enter a ticker id", "");
 		ui.displayMessageToUser("Retrieving SEC filings for " + response + "...");
@@ -161,13 +161,13 @@ public class Controller {
 	}
 
 	
-	private static void reportInitialTickerInfo() {
+	 static void reportInitialTickerInfo() {
 		// Tell user how many filings exist
 		ui.displayMessageToUser(fp.getFilingCount() + " SEC filings detected");
 
 	}
 	
-	private static void handleTagResponseAndReport() {
+	 static void handleTagResponseAndReport() {
 		int filingResponse = ui.displayMessageAndGetIntResponse(
 				"Would you like to return all filings [1] for " + fp.getTicker()
 						+ " or just the most recent [2]?",1,2,2);

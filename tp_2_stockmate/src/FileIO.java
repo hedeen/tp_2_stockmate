@@ -11,10 +11,6 @@ public class FileIO {
 		this.baseDirectory = baseDir;
 	}
 
-	public boolean checkBaseDirectoryValid() {
-		boolean exists = false;
-		return exists;
-	}
 
 	public boolean checkValidBaseDirectory() {
 		// Check if base directory is valid
