@@ -18,13 +18,13 @@ public class FilingProcessorTest {
 	}
 
 	@Test
-	public void test_constructor() {
+	public void testConstructor() {
 		//test does not throw error
 		assertDoesNotThrow(() -> new FilingProcessor(ticker));
 	}
 
 	@Test
-	public void test_getCik() {
+	public void testGetCik() {
 		cik = fp.getCIK(ticker);
 		assertTrue(cik.contentEquals("0001652044"));
 		assertTrue(fp.getTicker().equalsIgnoreCase("GOOG"));
@@ -41,9 +41,9 @@ public class FilingProcessorTest {
 	public void testMostRecentFiling_GetTagData_GetFilingPreview_GetMostRecentFilingData() {
 		fp.bufferMostRecentFiling();
 		assertTrue(fp.getFilingCount()>0);
-		assertTrue(fp.getTagData(2018, 0, "eps").length()>0);
+		assertTrue(fp.getTagData(2019, 1, "eps").length()>0);
 		assertTrue(fp.getTagData(1984, 0, "eps")==null);
-		assertTrue(fp.getFilingPreview().length()>0);
+		assertTrue(fp.getFilingPreview(",").equalsIgnoreCase(fp.getCachedFilingPreview()));
 		assertTrue(fp.getMostRecentFilingData("eps").length>0);
 	}
 
@@ -53,7 +53,7 @@ public class FilingProcessorTest {
 	}
 
 	@Test
-	public void GetArrayOfSupportedTagDescriptions() {
+	public void testGetArrayOfSupportedTagDescriptions() {
 		assertTrue(fp.getArrayOfSupportedTagDescriptions().length>0);
 	}
 
@@ -78,5 +78,6 @@ public class FilingProcessorTest {
 	public void testGetFormattedStringOfSupportedTags() {
 		assertTrue(fp.getFormattedStringOfSupportedTags().length()>0);
 	}
-
+	
+	
 }

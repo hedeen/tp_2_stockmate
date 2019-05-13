@@ -14,11 +14,11 @@ public class Filing {
 		this.filingXmlUrl = xmlLink;
 	}
 	
-	public Filing(Filing f) {
-		this.filingType = f.getFilingType();
-		this.filingDate = f.getFilingDate();
-		this.filingPageUrl = f.getFilingURL();
-	}
+//	public Filing(Filing f) {
+//		this.filingType = f.getFilingType();
+//		this.filingDate = f.getFilingDate();
+//		this.filingPageUrl = f.getFilingURL();
+//	}
 	
 	public String getFilingXML() {
 		return this.filingXmlUrl;
@@ -32,15 +32,15 @@ public class Filing {
 		return parsedDate;
 	}
 
-	public String getFilingType() {
-		return this.filingType;
-	}
-
-	public LocalDate getFilingDate() {
-		return this.filingDate;
-	}
-
-	public String getFilingURL() {
-		return this.filingPageUrl;
-	}
+//	public String getFilingType() {
+//		return this.filingType;
+//	}
+//
+//	public LocalDate getFilingDate() {
+//		return this.filingDate;
+//	}
+//
+//	public String getFilingURL() {
+//		return this.filingPageUrl;
+//	}
 }

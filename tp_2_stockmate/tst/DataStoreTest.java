@@ -7,11 +7,6 @@ class DataStoreTest {
 	
 	DataStore ds;
 
-	@Before
-	public void setup() {		
-
-	}
-
 	@Test
 	public void test_constructor() {
 		ds = new DataStore(DataStore.WriteOption.CSV);

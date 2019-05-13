@@ -67,12 +67,10 @@ public class DataStore {
 			return "CSV file created: " + f.getFullFilePath();
 		case TXT:
 			return "TXT file created: " + f.getFullFilePath();
-		case SQL:
-			throw new UnsupportedOperationException("SQL interface not developed");
+		default:
+			throw new UnsupportedOperationException(this.writeOpt + " interface not developed");
 		}
 		
-		// should not get here
-		return null;
 	}
 
 }

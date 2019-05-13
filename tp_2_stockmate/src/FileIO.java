@@ -12,6 +12,7 @@ public class FileIO {
 	}
 
 
+
 	public boolean checkValidBaseDirectory() {
 		// Check if base directory is valid
 		File tmpDir = new File(this.baseDirectory);
