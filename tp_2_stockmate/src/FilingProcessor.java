@@ -23,7 +23,7 @@ public class FilingProcessor {
 	protected String[] tags;
 	protected String ticker;
 	protected FilingTag[] SupportedTags = { new FilingTag("eps", "earnings per share"),
-			new FilingTag("epsd", "earnings per share"), new FilingTag("income", "income") };
+			new FilingTag("epsd", "diluted earnings per share"), new FilingTag("income", "income") };
 	private String filingPreviewCache = "";
 
 	public FilingProcessor(String ticker, String[] tags) {

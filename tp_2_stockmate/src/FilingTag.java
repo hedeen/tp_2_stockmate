@@ -17,4 +17,6 @@ public class FilingTag {
 		return this.fullDesc;
 	}
 	
+	
+	
 }
