@@ -1,4 +1,4 @@
-public class FilingData {
+public class FilingMap {
 
 	private NestedMap<String, String> m = new NestedMap<>();
 	private int rows = 0;
@@ -32,11 +32,6 @@ public class FilingData {
 			this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
 			this.rows++;
 		}
-//		} else if (!this.m.getChild(yr).getChild(prd).hasChild(tag)) {
-//			this.m.getChild(yr).getChild(prd).makeChild(tag);
-//			this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
-//			this.rows++;
-//		}
 
 	}
 
@@ -96,13 +91,5 @@ public class FilingData {
 	public int getMinYear() {
 		return this.minYear;
 	}
-
-//	public void clear() {
-//		this.rows = 0;
-//		this.m = new NestedMap<>();
-//		
-//		this.maxYear = 2000;
-//		this.minYear = 3000;
-//	}
 
 }

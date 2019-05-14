@@ -5,7 +5,7 @@ import edu.princeton.cs.introcs.StdOut;
 public class Controller {
 
 	// Setup variables and objects
-	static FilingProcessor fp;
+	static FilingSummary fs;
 	static String response = "";
 	static DataStore ds;
 	static UI ui;
@@ -30,7 +30,7 @@ public class Controller {
 						// Need to ask the user what ticker to begin working off of
 						initiateTickerProcessing();
 
-						if (fp.getFilingCount() > 0) {
+						if (fs.getFilingCount() > 0) {
 
 							// filings exist for ticker (valid)
 							reportInitialTickerInfo();
@@ -42,16 +42,16 @@ public class Controller {
 							while (!tagResponse.toLowerCase().equals("exit")) {
 
 								// Make sure its a valid tag before continuing
-								if (fp.checkTagSupported(tagResponse)) {
-									fp.setTag(tagResponse);
+								if (fs.checkTagSupported(tagResponse)) {
+									fs.setTag(tagResponse);
 
 									handleTagResponseAndReport();
 
 									// setup the filename (e.g. GOOG - eps (2019.03.....)"
 									String timeStamp = new SimpleDateFormat(fileDateFormat).format(new Date());
-									String filename = fp.getTicker() + " - " + tagResponse + " (" + timeStamp + ")";
+									String filename = fs.getTicker() + " - " + tagResponse + " (" + timeStamp + ")";
 
-									ds.writeData(fp.getCachedFilingPreview(), filename);
+									ds.writeData(fs.getCachedFilingPreview(), filename);
 									ui.displayMessageToUser(ds.getLastWriteInfo());
 
 								} else {
@@ -91,8 +91,8 @@ public class Controller {
 	// field for better readability)
 	static String loopQuestion() {
 
-		String q = "What data would you like to retrieve for " + fp.getTicker() + "?" + System.lineSeparator()
-				+ "Select a tag (in brackets) from the list of supported tags " + fp.getFormattedStringOfSupportedTags()
+		String q = "What data would you like to retrieve for " + fs.getTicker() + "?" + System.lineSeparator()
+				+ "Select a tag (in brackets) from the list of supported tags " + fs.getFormattedStringOfSupportedTags()
 				+ System.lineSeparator() + "Enter 'exit' to select a new ticker";
 
 		return q;
@@ -135,29 +135,29 @@ public class Controller {
 	static void initiateTickerProcessing() {
 		response = ui.displayMessageAndGetStringResponse("Enter a ticker id", "");
 		ui.displayMessageToUser("Retrieving SEC filings for " + response + "...");
-		fp = new FilingProcessor(response);
+		fs = new FilingSummary(response);
 	}
 
 	static void reportInitialTickerInfo() {
 		// Tell user how many filings exist
-		ui.displayMessageToUser(fp.getFilingCount() + " SEC filings detected");
+		ui.displayMessageToUser(fs.getFilingCount() + " SEC filings detected");
 
 	}
 
 	static void handleTagResponseAndReport() {
 		int filingResponse = ui.displayMessageAndGetIntResponse(
-				"Would you like to return all filings [1] for " + fp.getTicker() + " or just the most recent [2]?", 1,
+				"Would you like to return all filings [1] for " + fs.getTicker() + " or just the most recent [2]?", 1,
 				2, 2);
 
 		switch (filingResponse) {
 
 		case 1:
-			ui.displayMessageToUser("Retrieving all filings for " + fp.getTicker() + "...");
-			fp.bufferAllFilings();
+			ui.displayMessageToUser("Retrieving all filings for " + fs.getTicker() + "...");
+			fs.bufferAllFilings();
 			break;
 		case 2:
-			ui.displayMessageToUser("Retrieving the most recent filing for " + fp.getTicker() + "...");
-			fp.bufferMostRecentFiling();
+			ui.displayMessageToUser("Retrieving the most recent filing for " + fs.getTicker() + "...");
+			fs.bufferMostRecentFiling();
 			break;
 		}
 
@@ -169,6 +169,6 @@ public class Controller {
 		}
 
 		// Show preview to user before writing to datastore
-		ui.displayMessageToUser(fp.getFilingPreview(delimiter));
+		ui.displayMessageToUser(fs.getFilingPreview(delimiter));
 	}
 }

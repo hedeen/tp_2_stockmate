@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 
-class FileIOTest {
+class TestFileIO {
 
 	@Rule
 	public TemporaryFolder tempFolder = new TemporaryFolder();

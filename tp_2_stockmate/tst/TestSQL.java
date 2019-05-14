@@ -1,7 +1,7 @@
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class SQLTest {
+class TestSQL {
 
 	@SuppressWarnings("unused")
 	private SQL s;

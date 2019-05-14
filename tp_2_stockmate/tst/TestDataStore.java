@@ -1,9 +1,8 @@
 import static org.junit.Assert.assertTrue;
-import org.junit.Before;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class DataStoreTest {
+class TestDataStore {
 	
 	DataStore ds;
 

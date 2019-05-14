@@ -4,8 +4,6 @@ import java.net.URLConnection;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Scanner;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
@@ -16,24 +14,24 @@ import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.select.Elements;
 
-public class FilingProcessor {
+public class FilingSummary {
 
-	protected ArrayList<Filing> filings = new ArrayList<Filing>();
-	protected FilingData filingData = new FilingData();
+	protected ArrayList<FilingLocator> filings = new ArrayList<FilingLocator>();
+	protected FilingMap filingMap = new FilingMap();
+	protected FilingTag filingTag = new FilingTag();
 	protected String[] tags;
 	protected String ticker;
-	protected FilingTag[] SupportedTags = { new FilingTag("eps", "earnings per share"),
-			new FilingTag("epsd", "diluted earnings per share"), new FilingTag("income", "income") };
+
 	private String filingPreviewCache = "";
 
-	public FilingProcessor(String ticker, String[] tags) {
+	public FilingSummary(String ticker, String[] tags) {
 		this.tags = tags;
 		this.ticker = ticker;
 
 		populateFilings("10-");
 	}
 
-	public FilingProcessor(String ticker) {
+	public FilingSummary(String ticker) {
 		this.ticker = ticker;
 
 		populateFilings("10-");
@@ -50,15 +48,15 @@ public class FilingProcessor {
 		populateFilingData(3);
 	}
 
-//	public void setTags(String[] tags) {
-//		this.tags = tags;
-//	}
 
 	public void setTag(String tag) {
 		// convert to string array from a single string
 		String[] tmp = new String[1];
 		tmp[0] = tag;
 		this.tags = tmp;
+		
+		//clear the map if we are changing the tags
+		this.filingMap = new FilingMap();
 	}
 
 	public void bufferMostRecentFiling() {
@@ -68,6 +66,89 @@ public class FilingProcessor {
 
 	public int getFilingCount() {
 		return this.filings.size();
+	}
+	
+	public String getTagData(int year, int period, String tag) {
+
+		if (this.filingMap.hasData(year, period, tag)) {
+			return this.filingMap.get(year, period, tag);
+		} else {
+			return null;
+		}
+
+	}
+
+	public String[] getMostRecentFilingData(String tag) {
+
+		int yr = this.filingMap.getMaxYear();
+		String[] filingData = null;
+
+		for (int prd = 4; prd >= 0; prd--) {
+			if (this.filingMap.hasData(yr, prd, tag)) {
+				filingData = new String[] { String.valueOf(yr), String.valueOf(prd),
+						this.filingMap.get(yr, prd, tag) };
+				return filingData;
+			}
+		}
+
+		return null;
+
+	}
+
+	// Returns a string representing the filing data preview
+	public String getFilingPreview(String delimiter) {
+		// console output of the data we have parsed
+
+		String output = null;
+		String newline = System.lineSeparator();
+
+		if (filingMap.getRows() == 0) {
+			return null;
+		}
+
+		String delim = delimiter;
+
+		// output = ("Filing Data for " + this.ticker) + newline;
+		output = "year" + delim + "period";
+		for (String tag : this.tags) {
+			output = output + (delim + tag);
+		}
+		output = output + newline;
+
+		String buffer = "";
+		for (int yr = this.filingMap.getMaxYear(); yr >= this.filingMap.getMinYear(); yr--) {
+			for (int prd = 4; prd >= 0; prd--) {
+				if (this.filingMap.hasPeriodData(yr, prd)) {
+					for (int i = 0; i < this.tags.length - 1; i++) {
+						String tag = this.tags[i];
+						buffer = buffer + this.filingMap.get(yr, prd, tag) + delim;
+					}
+					buffer = buffer + this.filingMap.get(yr, prd, this.tags[this.tags.length - 1]);
+					output = output + (yr + delim + prd + delim + buffer) + newline;
+				}
+				buffer = "";
+			}
+		}
+
+		// Save the last filing preview so we can access it without needing to requery
+		this.filingPreviewCache = output;
+		return output;
+	}
+
+	public String getCachedFilingPreview() {
+		return this.filingPreviewCache;
+	}
+
+	public String getTicker() {
+		return this.ticker;
+	}
+
+	public boolean checkTagSupported(String tg) {
+		return this.filingTag.checkTagSupported(tg);
+	}
+
+	public String getFormattedStringOfSupportedTags() {
+		return this.filingTag.getFormattedStringOfSupportedTags();
 	}
 
 	protected String getCIK(String ticker) {
@@ -108,6 +189,10 @@ public class FilingProcessor {
 		// this strips the filing information from the SEC filing table
 
 		String cik = getCIK(this.ticker.toUpperCase());
+		
+		if(cik == null) {
+			return;
+		}
 
 		if (this.filings.size() > 0) {
 			this.filings.clear();
@@ -128,7 +213,7 @@ public class FilingProcessor {
 			String filingDate = cols.get(3).text();
 			String filingPageUrl = "https://www.sec.gov" + cols.get(1).select("a").first().attr("href");
 			String filingXmlUrl = getURLofXML(filingPageUrl);
-			this.filings.add(new Filing(filingType, filingDate, filingPageUrl, filingXmlUrl));
+			this.filings.add(new FilingLocator(filingType, filingDate, filingPageUrl, filingXmlUrl));
 
 		}
 
@@ -137,38 +222,31 @@ public class FilingProcessor {
 	protected String getURLofXML(String html) {
 		// this returns the URL of the XML filing
 
-		Document doc = Jsoup.parse(getHTML(html));
-		Element table = doc.select("table[summary=Data Files]").first();
-		if (table == null) {
-			return null;
-		}
-		Elements rows = table.select("tr");
-		for (int i = 1; i < rows.size(); i++) {
-			Element row = rows.get(i);
-			Elements cols = row.select("td");
-			if (cols.get(3).text().contains("INS")) {
-				return "https://www.sec.gov" + cols.get(2).select("a").first().attr("href");
-			}else if(cols.get(3).text().contains("XML")){
-				return "https://www.sec.gov" + cols.get(2).select("a").first().attr("href");
-			}
+		Document doc=null;
+		Element table = null;
 
+		try {
+			doc = Jsoup.parse(getHTML(html));
+			table = doc.select("table[summary=Data Files]").first();
+		} catch (NullPointerException e) {
+			//return null;
+		}
+
+		if (table != null) {
+
+			Elements rows = table.select("tr");
+			for (int i = 1; i < rows.size(); i++) {
+				Element row = rows.get(i);
+				Elements cols = row.select("td");
+				if (cols.get(3).text().contains("INS")) {
+					return "https://www.sec.gov" + cols.get(2).select("a").first().attr("href");
+				} else if (cols.get(3).text().contains("XML")) {
+					return "https://www.sec.gov" + cols.get(2).select("a").first().attr("href");
+				}
+
+			}
 		}
 		return null;
-	}
-
-	public String translateTag(String shortTag) {
-		// this suits as a container to allow short abbreviations to be translated into
-		// the longer XBRL tags
-		switch (shortTag.toLowerCase()) {
-		case "epsd":
-			return "us-gaap:EarningsPerShareDiluted";
-		case "eps":
-			return "us-gaap:EarningsPerShareBasic";
-		case "income":
-			return "us-gaap:NetIncomeLoss";
-		default:
-			return null;
-		}
 	}
 
 	protected LocalDate getContextDate(Element doc, String contextref, String dateType) {
@@ -265,7 +343,7 @@ public class FilingProcessor {
 
 		int rptCount = 0;
 
-		for (Filing d : this.filings) {
+		for (FilingLocator d : this.filings) {
 
 			String filingXML = d.getFilingXML();
 
@@ -279,7 +357,7 @@ public class FilingProcessor {
 						Document doc = Jsoup.parse(html, "", Parser.xmlParser());
 
 						for (String tag : this.tags) {
-							Elements elements = doc.getElementsByTag(translateTag(tag));
+							Elements elements = doc.getElementsByTag(this.filingTag.getXbrlTag(tag));
 							for (Element e : elements) {
 								String contextref = e.attr("contextref");
 								LocalDate startDate = getContextDate(doc, contextref, "startDate");
@@ -288,7 +366,7 @@ public class FilingProcessor {
 								int periodScope = getPeriodScope(doc, endDate, months);
 								int periodYear = getPeriodYear(doc, endDate);
 								if (periodScope != -1 && periodYear != -1) {
-									this.filingData.put(periodYear, periodScope, tag, e.text());
+									this.filingMap.put(periodYear, periodScope, tag, e.text());
 								}
 
 							}
@@ -303,141 +381,6 @@ public class FilingProcessor {
 
 	}
 
-	public String getTagData(int year, int period, String tag) {
+	
 
-		if (this.filingData.hasData(year, period, tag)) {
-			return this.filingData.get(year, period, tag);
-		} else {
-			return null;
-		}
-
-	}
-
-	public String[] getMostRecentFilingData(String tag) {
-
-		int yr = this.filingData.getMaxYear();
-		String[] filingData = null;
-
-		for (int prd = 4; prd >= 0; prd--) {
-			if (this.filingData.hasData(yr, prd, tag)) {
-				filingData = new String[] { String.valueOf(yr), String.valueOf(prd),
-						this.filingData.get(yr, prd, tag) };
-				return filingData;
-			}
-		}
-
-		return null;
-
-	}
-
-	// Returns a string representing the filing data preview
-	public String getFilingPreview(String delimiter) {
-		// console output of the data we have parsed
-
-		String output = null;
-		String newline = System.lineSeparator();
-
-		if (filingData.getRows() == 0) {
-			return null;
-		}
-
-		String delim = delimiter;
-
-		//output = ("Filing Data for " + this.ticker) + newline;
-		output = "year" + delim + "period";
-		for (String tag : this.tags) {
-			output = output + (delim + tag);
-		}
-		output = output + newline;
-
-		String buffer = "";
-		for (int yr = this.filingData.getMaxYear(); yr >= this.filingData.getMinYear(); yr--) {
-			for (int prd = 4; prd >= 0; prd--) {
-				if (this.filingData.hasPeriodData(yr, prd)) {
-					for (int i = 0; i < this.tags.length - 1; i++) {
-						String tag = this.tags[i];
-						buffer = buffer + this.filingData.get(yr, prd, tag) + delim;
-					}
-					buffer = buffer + this.filingData.get(yr, prd, this.tags[this.tags.length-1]);
-					output = output + (yr + delim + prd + delim + buffer) + newline;
-				}
-				buffer = "";
-			}
-		}
-
-		// Save the last filing preview so we can access it without needing to requery
-		this.filingPreviewCache = output;
-		return output;
-	}
-
-	// Returns an array of string descriptions that represent the supported SEC tags
-	public String[] getArrayOfSupportedTagDescriptions() {
-		String[] tmp = new String[SupportedTags.length];
-
-		for (int i = 0; i < SupportedTags.length; i++) {
-			tmp[i] = SupportedTags[i].getFullDescription();
-		}
-		return tmp;
-	}
-
-	// Returns an array of the string tags that represent the supported SEC tags
-	public String[] getArrayOfSupportedTags() {
-		String[] tmp = new String[SupportedTags.length];
-
-		for (int i = 0; i < SupportedTags.length; i++) {
-			tmp[i] = SupportedTags[i].getTag();
-		}
-		return tmp;
-	}
-
-	// Checks to see if the requested string tag is supported by the FilingProcessor
-	public boolean checkTagSupported(String tg) {
-		// Convert String Array to List for easy contains method
-		List<String> list = Arrays.asList(this.getArrayOfSupportedTags());
-
-		if (list.contains(tg)) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	// Get the full description from the tag name (string)
-	public String getFullTagDescription(String tg) {
-		String tmp = null;
-
-		for (int i = 0; i < SupportedTags.length; i++) {
-			if (SupportedTags[i].getTag().equals(tg)) {
-				tmp = SupportedTags[i].getFullDescription();
-				break; // we found the matching tag so can leave
-			}
-		}
-		return tmp;
-	}
-
-	public String getTicker() {
-		return this.ticker;
-	}
-
-	public String getFormattedStringOfSupportedTags() {
-
-		String formatted = "";
-
-		for (int i = 0; i < SupportedTags.length; i++) {
-			String tmp = "[" + SupportedTags[i].getTag() + "] " + SupportedTags[i].getFullDescription();
-
-			// Only want to append on spaces after we have more than 1 supported tag
-			// if (i>0) {
-			formatted = formatted + System.lineSeparator() + tmp;
-			// } else {
-			// formatted = tmp;
-			// }
-		}
-
-		return formatted;
-	}
-
-	public String getCachedFilingPreview() {
-		return this.filingPreviewCache;
-	}
 }
