@@ -1,0 +1,17 @@
+title StockMate Main Success Scenario
+
+User->SuD:Start Application
+User<--SuD:Data Storage Method Prompt
+
+User->SuD:setupDataStore(writeOption)
+User<--SuD:Local Storage Location Prompt
+User->SuD:checkDirectory(filepath)
+loop while(1)
+User<--SuD:Stock Ticker Prompt
+User->SuD:requestFilings(stockTicker)
+User<--SuD:# of Filings, Supported tags
+
+User<--SuD:Information Tag Prompt
+User->SuD:getFilings(stockTicker,requestedTag)
+User<--SuD:Filing data related to Tag
+end loop
