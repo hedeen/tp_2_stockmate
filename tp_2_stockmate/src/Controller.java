@@ -114,14 +114,14 @@ public class Controller {
 		case 1:
 			ds = new DataStore(DataStore.WriteOption.CSV); // initialize the data store
 			String tmp1 = ui.displayMessageAndGetStringResponse(
-					"You have selected to create .csv files. Please enter a local folder to save stock files: ",
+					"You have selected to create .csv files. Please enter a local folder to save stock files:",
 					"C:\\Stock Mate");
 			ds.setupFileIO(tmp1);
 			break;
 		case 2:
 			ds = new DataStore(DataStore.WriteOption.TXT); // initialize the data store
 			String tmp2 = ui.displayMessageAndGetStringResponse(
-					"You have selected to create .txt files. Please enter a local folder to save stock files: ",
+					"You have selected to create .txt files. Please enter a local folder to save stock files:",
 					"C:\\Stock Mate");
 			ds.setupFileIO(tmp2);
 			break;

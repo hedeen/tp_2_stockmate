@@ -1,18 +1,24 @@
-This generates the SSD
 title StockMate Main Success Scenario
+actor User
+participant SuD
+participant SEC Website
 
 User->SuD:Start Application
 User<--SuD:Data Storage Method Prompt
 
-User->SuD:setupDataStore(writeOption)
+User->SuD:new DataStore(writeOption)
 User<--SuD:Local Storage Location Prompt
-User->SuD:checkDirectory(filepath)
+User->SuD:setupFileIO(filepath)
 loop while(1)
 User<--SuD:Stock Ticker Prompt
-User->SuD:requestFilings(stockTicker)
-User<--SuD:# of Filings, Supported tags
+User->SuD:new FilingSummary(stockTicker)
+SuD->SEC Website:retrieveFilings(stockTicker)
 
+SuD<-SEC Website:# of Filings
+User<--SuD:# of Filings, Supported tags
 User<--SuD:Information Tag Prompt
 User->SuD:getFilings(stockTicker,requestedTag)
-User<--SuD:Filing data related to Tag
+SuD->SEC Website:getFilingData(stockTicker,requestedTag)
+SuD<--SEC Website:Filing data
+User<--SuD:Filing data
 end loop

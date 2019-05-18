@@ -70,7 +70,7 @@ public class UI {
 		do {
 
 			try {
-				StdOut.println(prompt + " | Default = [" + defaultResponse + "]");
+				StdOut.println(prompt + " | Default = [" + defaultResponse + "]" + "\n");
 				userInt = Integer.parseInt(StdIn.readLine());
 			} catch (NumberFormatException e) {
 				userInt = defaultResponse; // If they don't enter a valid response just use the default one supplied
@@ -95,9 +95,9 @@ public class UI {
 
 			// Modify the prompt (add on default response in brackets) if supplied
 			if (defaultResponse.length() > 0) {
-				StdOut.println(prompt + " | Default = [" + defaultResponse + "]");
+				StdOut.println(prompt + " | Default = [" + defaultResponse + "] \n");
 			} else {
-				StdOut.println(prompt);
+				StdOut.println(prompt + "\n");
 			}
 
 			userString = StdIn.readLine();
