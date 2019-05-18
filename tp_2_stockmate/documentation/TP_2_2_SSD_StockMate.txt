@@ -1,3 +1,4 @@
+This generates the SSD
 title StockMate Main Success Scenario
 
 User->SuD:Start Application
