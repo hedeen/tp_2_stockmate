@@ -48,14 +48,13 @@ public class FilingSummary {
 		populateFilingData(3);
 	}
 
-
 	public void setTag(String tag) {
 		// convert to string array from a single string
 		String[] tmp = new String[1];
 		tmp[0] = tag;
 		this.tags = tmp;
-		
-		//clear the map if we are changing the tags
+
+		// clear the map if we are changing the tags
 		this.filingMap = new FilingMap();
 	}
 
@@ -67,7 +66,28 @@ public class FilingSummary {
 	public int getFilingCount() {
 		return this.filings.size();
 	}
-	
+
+	public ArrayList<String[]> getArrayFilings() {
+
+		ArrayList<String[]> rtn = new ArrayList<String[]>();
+
+		for (int yr = this.filingMap.getMaxYear(); yr >= this.filingMap.getMinYear(); yr--) {
+			for (int prd = 4; prd >= 0; prd--) {
+				if (this.filingMap.hasPeriodData(yr, prd)) {
+					for (int i = 0; i < this.tags.length - 1; i++) {
+						String tag = this.tags[i];
+						String[] row = new String[] { String.valueOf(yr), String.valueOf(prd), tag,
+								this.filingMap.get(yr, prd, tag) };
+						rtn.add(row);
+					}
+				}
+			}
+		}
+
+		return rtn;
+
+	}
+
 	public String getTagData(int year, int period, String tag) {
 
 		if (this.filingMap.hasData(year, period, tag)) {
@@ -85,8 +105,7 @@ public class FilingSummary {
 
 		for (int prd = 4; prd >= 0; prd--) {
 			if (this.filingMap.hasData(yr, prd, tag)) {
-				filingData = new String[] { String.valueOf(yr), String.valueOf(prd),
-						this.filingMap.get(yr, prd, tag) };
+				filingData = new String[] { String.valueOf(yr), String.valueOf(prd), this.filingMap.get(yr, prd, tag) };
 				return filingData;
 			}
 		}
@@ -189,8 +208,8 @@ public class FilingSummary {
 		// this strips the filing information from the SEC filing table
 
 		String cik = getCIK(this.ticker.toUpperCase());
-		
-		if(cik == null) {
+
+		if (cik == null) {
 			return;
 		}
 
@@ -222,14 +241,14 @@ public class FilingSummary {
 	protected String getURLofXML(String html) {
 		// this returns the URL of the XML filing
 
-		Document doc=null;
+		Document doc = null;
 		Element table = null;
 
 		try {
 			doc = Jsoup.parse(getHTML(html));
 			table = doc.select("table[summary=Data Files]").first();
 		} catch (NullPointerException e) {
-			//return null;
+			// return null;
 		}
 
 		if (table != null) {
@@ -368,7 +387,6 @@ public class FilingSummary {
 								if (periodScope != -1 && periodYear != -1) {
 									this.filingMap.put(periodYear, periodScope, tag, e.text());
 								}
-
 							}
 						}
 					}
@@ -380,7 +398,5 @@ public class FilingSummary {
 		}
 
 	}
-
-	
 
 }

@@ -31,6 +31,10 @@ public class FilingMap {
 			this.m.getChild(yr).getChild(prd).makeChild(tag);
 			this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
 			this.rows++;
+		} else if (!this.m.getChild(yr).getChild(prd).hasChild(tag)) {
+			this.m.getChild(yr).getChild(prd).makeChild(tag);
+			this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
+			this.rows++;
 		}
 
 	}
