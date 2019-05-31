@@ -9,6 +9,7 @@ public class Console {
 	public static void main(String[] args) {
 		Connection con = null;
 		PreparedStatement stmt = null;
+		int cnt = 0;
 
 		if (args.length == 0) {
 			args = new String[] { "BERY", "HOFT", "BIIB", "MHK", "WEN", "IVZ", "VLP", "MMP", "MAN", "LTC", "SBNY",
@@ -30,11 +31,13 @@ public class Console {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-
+		
+		
 		for (String t : args) {
 			FilingSummary fs = new FilingSummary(t, new String[] { "income", "eps", "epsd" });
 			fs.bufferAllFilings();
-			System.out.println(fs.getFilingPreview(","));
+			cnt++;
+			System.out.println(cnt + " of " + args.length +"...(" + t + ")");
 			for (String[] v : fs.getArrayFilings()) {
 
 				try {
