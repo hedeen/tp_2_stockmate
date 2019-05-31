@@ -28,13 +28,13 @@ public class FilingSummary {
 		this.tags = tags;
 		this.ticker = ticker;
 
-		populateFilings("10-");
+		// populateFilings("10-");
 	}
 
 	public FilingSummary(String ticker) {
 		this.ticker = ticker;
 
-		populateFilings("10-");
+		// populateFilings("10-");
 	}
 
 	public void bufferAllFilings() {
@@ -74,9 +74,9 @@ public class FilingSummary {
 		for (int yr = this.filingMap.getMaxYear(); yr >= this.filingMap.getMinYear(); yr--) {
 			for (int prd = 4; prd >= 0; prd--) {
 				if (this.filingMap.hasPeriodData(yr, prd)) {
-					for (int i = 0; i < this.tags.length - 1; i++) {
+					for (int i = 0; i < this.tags.length; i++) {
 						String tag = this.tags[i];
-						String[] row = new String[] { String.valueOf(yr), String.valueOf(prd), tag,
+						String[] row = new String[] { tag, String.valueOf(yr), String.valueOf(prd),
 								this.filingMap.get(yr, prd, tag) };
 						rtn.add(row);
 					}
@@ -189,15 +189,9 @@ public class FilingSummary {
 	protected String getHTML(String url) {
 		// turns a url into a string of raw html
 		String content = null;
-
 		try {
-			URLConnection connection = new URL(url).openConnection();
-			Scanner scanner = new Scanner(connection.getInputStream());
-			scanner.useDelimiter("\\Z");
-			content = scanner.next();
-			scanner.close();
+			content = Jsoup.connect(url).execute().body();
 		} catch (IOException e1) {
-			// e.printStackTrace();
 			return null;
 		}
 		return content;

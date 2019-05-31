@@ -16,6 +16,7 @@ public class Console {
 					"ASR", "OMAB", "PAC", "RHP", "CRI", "THO", "TROW", "EGBN", "NCLH", "MGA", "PKG", "SNA", "LABL",
 					"PBCT", "WAL", "LUV", "OMC", "TOWN", "BLK", "TU", "SEDG", "BAP", "FB", "BJRI", "EGOV", "USAT",
 					"MCK" };
+			//args = new String[] { "MHK" };
 		}
 
 		try {
@@ -27,41 +28,62 @@ public class Console {
 		}
 		try {
 			stmt = con.prepareStatement(
-					"REPLACE INTO SM2019.D(ticker, yr, prd, tag, val, loaddate) VALUES (?, ?, ?, ?, ?, ?)");
+					"REPLACE INTO SM2019.D(tkr, yr, prd, esb, esd, ern, shr, wsh, pft, ldt) VALUES (?, ?, ?, ?, ?)");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-		
-		
+
 		for (String t : args) {
-			FilingSummary fs = new FilingSummary(t, new String[] { "income", "eps", "epsd" });
-			fs.bufferAllFilings();
 			cnt++;
-			System.out.println(cnt + " of " + args.length +"...(" + t + ")");
+			System.out.println(cnt + " of " + args.length + "...(" + t + ")");
+			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
+			fs.bufferAllFilings();
+
 			for (String[] v : fs.getArrayFilings()) {
 
 				try {
 					if (v[0] == null || v[1] == null || v[2] == null || v[3] == null) {
 						// do nothing
 					} else {
+
+						System.out.println(t.toUpperCase() + "," + v[0] + "," + v[1] + "," + v[2] + "," + v[3]);
+
+						stmt = buildStatement(con, v[0]);
+
 						stmt.setString(1, t.toUpperCase());
-						stmt.setInt(2, Integer.parseInt(v[0]));
-						stmt.setInt(3, Integer.parseInt(v[1]));
-						stmt.setString(4, v[2]);
+						stmt.setInt(2, Integer.parseInt(v[1]));
+						stmt.setInt(3, Integer.parseInt(v[2]));
+						stmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
 						stmt.setDouble(5, Double.parseDouble(v[3]));
 						stmt.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
+						stmt.setDouble(7, Double.parseDouble(v[3]));
 						stmt.executeUpdate();
+						// System.out.println( t.toUpperCase()+","+v[0]+","+v[1]+","+v[2]+","+v[3]);
 					}
 
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} catch (NullPointerException e1) {
-					System.out.println(e1);
 				}
 
 			}
+
+			System.out.println(fs.getFilingPreview(","));
 		}
+
+	}
+
+	private static PreparedStatement buildStatement(Connection con, String col) {
+		PreparedStatement stmt = null;
+		try {
+			stmt = con.prepareStatement("INSERT INTO d (tkr, yr, prd, ldt, " + col + ")" + "VALUES (?,?,?,?,?) "
+					+ "ON DUPLICATE KEY UPDATE " + "ldt = ?, " + col + "=?;");
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return stmt;
 
 	}
 }

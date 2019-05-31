@@ -5,12 +5,17 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP ON SM2019.* TO sm@'%' IDENTIF
 mysql -usm -pstockmate SM2019
 DROP TABLE d;
 CREATE TABLE d ( 
-	ticker varchar(10) not null, 
+	tkr char(4) not null,
 	yr YEAR not null,
 	prd CHAR(1) not null,
-	tag varchar(20) not null,
-	val FLOAT,
-	loaddate DATETIME,
-	CONSTRAINT pk_d PRIMARY KEY (ticker, yr, prd, tag) 
+	esb FLOAT,
+	esd FLOAT,
+	ern FLOAT,
+	shb FLOAT,
+	shd FLOAT,
+	pft FLOAT,
+	gpf FLOAT,
+	ldt DATETIME,
+	CONSTRAINT pk_d PRIMARY KEY (tkr, yr, prd) 
 );
 --REPLACE INTO d VALUES ('jnj',2010,0,'eps',2.4,now());

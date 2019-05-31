@@ -9,9 +9,13 @@ public class FilingTag {
 
 		// format is shortname as key, then long description as value0 and xbrl tag as
 		// value1
-		SupportedTags.put("eps", new String[] { "earnings per share", "us-gaap:EarningsPerShareBasic" });
-		SupportedTags.put("epsd", new String[] { "diluted earnings per share", "us-gaap:EarningsPerShareDiluted" });
-		SupportedTags.put("income", new String[] { "income", "us-gaap:NetIncomeLoss" });
+		SupportedTags.put("esb", new String[] { "earnings per share basic", "us-gaap:EarningsPerShareBasic" });
+		SupportedTags.put("esd", new String[] { "diluted earnings per share", "us-gaap:EarningsPerShareDiluted" });
+		SupportedTags.put("ern", new String[] { "earnings/income", "us-gaap:NetIncomeLoss" });
+		SupportedTags.put("shb", new String[] { "shares outstanding", "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"});//"us-gaap:SharesOutstanding"});
+		SupportedTags.put("shd", new String[] { "weighted diluted shares", "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"});
+		SupportedTags.put("pft", new String[] { "profit", "us-gaap:ProfitLoss"});
+		SupportedTags.put("gpf", new String[] { "gross profit", "us-gaap:GrossProfit"});
 
 	}
 
