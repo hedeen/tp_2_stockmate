@@ -1,14 +1,12 @@
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
+import org.jsoup.UncheckedIOException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
@@ -189,10 +187,14 @@ public class FilingSummary {
 	protected String getHTML(String url) {
 		// turns a url into a string of raw html
 		String content = null;
-		try {
-			content = Jsoup.connect(url).execute().body();
-		} catch (IOException e1) {
-			return null;
+		while (content == null) {
+			try {
+				content = Jsoup.connect(url).execute().body();
+			} catch (IOException e1) {
+				return null;
+			} catch (UncheckedIOException e2) {
+				content = null;
+			}
 		}
 		return content;
 
@@ -262,7 +264,7 @@ public class FilingSummary {
 		return null;
 	}
 
-	protected LocalDate getContextDate(Element doc, String contextref, String dateType) {
+	protected LocalDate getContextDate(Element doc, String contextref, String dateType) throws NullPointerException {
 		// this returns a date for a given element list with a given context for a
 		// specific tag
 		String dateString;
@@ -320,14 +322,14 @@ public class FilingSummary {
 
 		int periodYear = -1;
 		int fiscalYearFocus;
+		LocalDate periodEndDate;
 
 		try {
 			fiscalYearFocus = Integer.parseInt(doc.select("dei|DocumentFiscalYearFocus").text());
-		} catch (NumberFormatException e) {
+			periodEndDate = LocalDate.parse(doc.select("dei|DocumentPeriodEndDate").text());
+		} catch (NumberFormatException | DateTimeParseException e) {
 			return -1;
 		}
-
-		LocalDate periodEndDate = LocalDate.parse(doc.select("dei|DocumentPeriodEndDate").text());
 
 		int monthsDif = getMonths(endDate, periodEndDate);
 		if (monthsDif < 12) {
@@ -372,14 +374,19 @@ public class FilingSummary {
 						for (String tag : this.tags) {
 							Elements elements = doc.getElementsByTag(this.filingTag.getXbrlTag(tag));
 							for (Element e : elements) {
-								String contextref = e.attr("contextref");
-								LocalDate startDate = getContextDate(doc, contextref, "startDate");
-								LocalDate endDate = getContextDate(doc, contextref, "endDate");
-								int months = getMonths(startDate, endDate);
-								int periodScope = getPeriodScope(doc, endDate, months);
-								int periodYear = getPeriodYear(doc, endDate);
-								if (periodScope != -1 && periodYear != -1) {
-									this.filingMap.put(periodYear, periodScope, tag, e.text());
+								try {
+									String contextref = e.attr("contextref");
+									LocalDate startDate = getContextDate(doc, contextref, "startDate");
+									LocalDate endDate = getContextDate(doc, contextref, "endDate");
+									int months = getMonths(startDate, endDate);
+									int periodScope = getPeriodScope(doc, endDate, months);
+									int periodYear = getPeriodYear(doc, endDate);
+									if (periodScope != -1 && periodYear != -1) {
+										this.filingMap.put(periodYear, periodScope, tag, e.text());
+									}
+								} catch (NullPointerException e1) {
+									// ignore record
+
 								}
 							}
 						}
