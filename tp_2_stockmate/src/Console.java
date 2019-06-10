@@ -5,20 +5,45 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 public class Console {
-
+	
 	public static void main(String[] args) {
-		Connection con = null;
-		PreparedStatement stmt = null;
-		int cnt = 0;
-
-		if (args.length == 0) {
-//			args = new String[] { "BERY", "HOFT", "BIIB", "MHK", "WEN", "IVZ", "VLP", "MMP", "MAN", "LTC", "SBNY",
-//					"ASR", "OMAB", "PAC", "RHP", "CRI", "THO", "TROW", "EGBN", "NCLH", "MGA", "PKG", "SNA", "LABL",
-//					"PBCT", "WAL", "LUV", "OMC", "TOWN", "BLK", "TU", "SEDG", "BAP", "FB", "BJRI", "EGOV", "USAT",
-//					"MCK" };
-			args = new String[] { "PBCT" };
+	
+	}
+	
+	public int getLatestQuarterly(String ticker) {
+		Connection con = connectToDB();
+		int maxQtr=0;
+		try {
+			int yearCount = con.prepareStatement("SELECT COUNT(DISTINCT(yr)) FROM SM2019.D WHERE tkr=" + ticker).getResultSet().getInt(1);
+			int maxYear = con.prepareStatement("SELECT MAX(yr) FROM SM2019.D WHERE prd <> 0 AND tkr=" + ticker).getResultSet().getInt(1);
+			
+			do {
+				
+			}while(1==1);
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-
+		
+		
+		closeCommit(con);
+		
+		return maxQtr;
+	}
+	
+	public void closeCommit(Connection con) {
+		try {
+			con.commit();
+			con.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public Connection connectToDB() {
+		
+		Connection con = null;
+		
 		try {
 			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?user=sm&password=stockmate");
 		} catch (SQLException e) {
@@ -26,6 +51,25 @@ public class Console {
 			e.printStackTrace();
 			System.exit(-1);
 		}
+		
+		return con;
+	}
+
+	public void loadDataIntoDB(String[] tickers)  {
+		
+		Connection con = connectToDB();
+		PreparedStatement stmt = null;
+		
+		int cnt = 0;
+
+		if (tickers.length == 0) {
+//			args = new String[] { "BERY", "HOFT", "BIIB", "MHK", "WEN", "IVZ", "VLP", "MMP", "MAN", "LTC", "SBNY",
+//					"ASR", "OMAB", "PAC", "RHP", "CRI", "THO", "TROW", "EGBN", "NCLH", "MGA", "PKG", "SNA", "LABL",
+//					"PBCT", "WAL", "LUV", "OMC", "TOWN", "BLK", "TU", "SEDG", "BAP", "FB", "BJRI", "EGOV", "USAT",
+//					"MCK" };
+			tickers = new String[] { "PBCT" };
+		}
+
 		try {
 			stmt = con.prepareStatement(
 					"REPLACE INTO SM2019.D(tkr, yr, prd, esb, esd, ern, shr, wsh, pft, ldt) VALUES (?, ?, ?, ?, ?)");
@@ -33,9 +77,9 @@ public class Console {
 			System.out.println(e.getMessage());
 		}
 
-		for (String t : args) {
+		for (String t : tickers) {
 			cnt++;
-			System.out.println(cnt + " of " + args.length + "...(" + t + ")");
+			System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
 			fs.bufferAllFilings();
 
@@ -46,7 +90,7 @@ public class Console {
 						// do nothing
 					} else {
 
-						System.out.println(t.toUpperCase() + "," + v[0] + "," + v[1] + "," + v[2] + "," + v[3]);
+						//System.out.println(t.toUpperCase() + "," + v[0] + "," + v[1] + "," + v[2] + "," + v[3]);
 
 						stmt = buildStatement(con, v[0]);
 
@@ -70,6 +114,9 @@ public class Console {
 
 			System.out.println(fs.getFilingPreview(","));
 		}
+		
+		
+		closeCommit(con);
 
 	}
 
