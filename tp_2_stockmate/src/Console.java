@@ -1,36 +1,104 @@
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 public class Console {
-	
+
 	public static void main(String[] args) {
-	
+
+		Console c = new Console();
+		// int[] latestQtr = c.getLatestQuarterly("MHK");
+		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
+
+		System.out.println(c.hasAnnualsForXyrs("THO", 5));
+
 	}
-	
-	public int getLatestQuarterly(String ticker) {
+
+	public int[] getLatestQuarterly(String ticker) {
 		Connection con = connectToDB();
-		int maxQtr=0;
+		int maxQtr = -1;
+		int maxYr = -1;
+		ResultSet rs;
 		try {
-			int yearCount = con.prepareStatement("SELECT COUNT(DISTINCT(yr)) FROM SM2019.D WHERE tkr=" + ticker).getResultSet().getInt(1);
-			int maxYear = con.prepareStatement("SELECT MAX(yr) FROM SM2019.D WHERE prd <> 0 AND tkr=" + ticker).getResultSet().getInt(1);
-			
-			do {
-				
-			}while(1==1);
-			
+			rs = con.prepareStatement("SELECT MAX(D.prd), MAX(D.yr) " + "FROM SM2019.D "
+					+ "JOIN (SELECT MAX(yr) mYr FROM SM2019.D WHERE prd > 0 AND tkr='" + ticker
+					+ "') M ON M.mYr = D.yr;").executeQuery();
+
+			if (rs.next()) {
+				maxQtr = rs.getInt(1);
+				maxYr = rs.getInt(2);
+			}
+
 		} catch (SQLException e) {
-			e.printStackTrace();
+
 		}
-		
-		
+
 		closeCommit(con);
-		
-		return maxQtr;
+
+		return new int[] { maxYr, maxQtr };
+	}
+
+	public int getLatestAnnual(String ticker) {
+		Connection con = connectToDB();
+		int maxYr = -1;
+		ResultSet rs;
+		try {
+			rs = con.prepareStatement(
+					"SELECT MAX(D.yr) " + "FROM SM2019.D " + "WHERE prd = 0 AND tkr='" + ticker + "';").executeQuery();
+
+			if (rs.next()) {
+				maxYr = rs.getInt(1);
+			}
+
+		} catch (SQLException e) {
+
+		}
+
+		closeCommit(con);
+
+		return maxYr;
+	}
+
+	public ArrayList<String> hasAnnualsForXyrs(String ticker, int x) {
+		Connection con = connectToDB();
+		int maxYr = getLatestAnnual(ticker);
+		int minYr = maxYr - x;
+		ArrayList<String> missingData = new ArrayList<String>();
+		ResultSet rs;
+
+		for (int yr = maxYr; yr > minYr; yr--) {
+			try {
+				String sql = "SELECT COUNT(*) " + "FROM SM2019.D " + "WHERE prd = 0 AND tkr='" + ticker + "' AND yr = "
+						+ yr + ";";
+				rs = con.prepareStatement(sql).executeQuery();
+
+				if (rs.next()) {
+					if (rs.getInt(1) != 1) {
+						missingData.add(String.valueOf(yr));
+					}
+				} else {
+					missingData.add(String.valueOf(yr));
+				}
+
+			} catch (SQLException e) {
+
+			}
+		}
+
+		closeCommit(con);
+
+		return missingData;
 	}
 	
+//	public int[][] getXtags(String ticker){
+//		
+//	}
+
+
 	public void closeCommit(Connection con) {
 		try {
 			con.commit();
@@ -39,11 +107,11 @@ public class Console {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public Connection connectToDB() {
-		
+
 		Connection con = null;
-		
+
 		try {
 			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?user=sm&password=stockmate");
 		} catch (SQLException e) {
@@ -51,15 +119,15 @@ public class Console {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		return con;
 	}
 
-	public void loadDataIntoDB(String[] tickers)  {
-		
+	public void loadDataIntoDB(String[] tickers) {
+
 		Connection con = connectToDB();
 		PreparedStatement stmt = null;
-		
+
 		int cnt = 0;
 
 		if (tickers.length == 0) {
@@ -90,7 +158,8 @@ public class Console {
 						// do nothing
 					} else {
 
-						//System.out.println(t.toUpperCase() + "," + v[0] + "," + v[1] + "," + v[2] + "," + v[3]);
+						// System.out.println(t.toUpperCase() + "," + v[0] + "," + v[1] + "," + v[2] +
+						// "," + v[3]);
 
 						stmt = buildStatement(con, v[0]);
 
@@ -114,8 +183,7 @@ public class Console {
 
 			System.out.println(fs.getFilingPreview(","));
 		}
-		
-		
+
 		closeCommit(con);
 
 	}
