@@ -287,8 +287,11 @@ public class FilingSummary {
 			return -1;
 		}
 
-		if (fiscalPeriod.toUpperCase().startsWith("Q")) {
-			period = Integer.parseInt(fiscalPeriod.substring(1));
+//		if (fiscalPeriod.toUpperCase().startsWith("Q")) {
+//			period = Integer.parseInt(fiscalPeriod.substring(1));
+		if (fiscalPeriod.toUpperCase().contains("Q")) {
+			String periodWithoutSpaces = fiscalPeriod.replace(" ", "");
+			period = Integer.parseInt((periodWithoutSpaces.substring(periodWithoutSpaces.lastIndexOf("Q")+1)));
 		} else {
 
 			if (periodEndDate.getMonthValue() == endDate.getMonthValue() && periodLength == 3) {
