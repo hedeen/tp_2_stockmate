@@ -36,9 +36,16 @@ public class LinearRegression {
      * @throws IllegalArgumentException if the lengths of the two arrays are not equal
      */
     public LinearRegression(double[] x, double[] y) {
+    	
+        if(x == null || y == null) {
+        	throw new IllegalArgumentException("array is null");
+        }
+        
         if (x.length != y.length) {
             throw new IllegalArgumentException("array lengths are not equal");
         }
+        
+
         int n = x.length;
 
         // first pass
