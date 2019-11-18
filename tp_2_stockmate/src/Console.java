@@ -4,6 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public class Console {
@@ -11,18 +13,9 @@ public class Console {
 	public static void main(String[] args) {
 
 		Console c = new Console();
-		EPSdata e = c.getEPS("RTN");
+		c.loadQAdataInDB(c.getTickers("D")); //new String[] {"HOFT"});//
 
-		if (e.valid10) {
-			LinearRegression lr = new LinearRegression(e.get10Yrs(), e.get10Vals());
-			System.out.println(lr.R2());
-			System.out.println(lr.slope());
-			System.out.println(lr.intercept());
-		} else {
-			System.out.println("invalid data");
-		}
-
-		c.loadEPSCalcsInDB(); // new String[] { "MNST" }
+		c.loadEPSCalcsInDB(); // 
 
 		// int[] latestQtr = c.getLatestQuarterly("MHK");
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
@@ -222,7 +215,7 @@ public class Console {
 
 		try {
 			stmt = con.prepareStatement(
-					"REPLACE INTO SM2019.CALCS(tkr, r3, m3, b3, r5, m5, b5, r9, m9, b9, r10, m10, b10) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+					"REPLACE INTO SM2019.CALCS(tkr, r3, m3, b3, r5, m5, b5, r9, m9, b9, r10, m10, b10, cdt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
@@ -275,7 +268,8 @@ public class Console {
 					stmt.setNull(12, java.sql.Types.DOUBLE);
 					stmt.setNull(13, java.sql.Types.DOUBLE);
 				}
-
+				stmt.setTimestamp(14, new Timestamp(System.currentTimeMillis()));
+				stmt.executeUpdate();
 			} catch (SQLException exc) {
 				// TODO Auto-generated catch block
 				exc.printStackTrace();
@@ -362,12 +356,12 @@ public class Console {
 			tickers = new String[] { "PBCT" };
 		}
 
-		try {
-			stmt = con.prepareStatement(
-					"REPLACE INTO SM2019.D(tkr, yr, prd, esb, esd, ern, shr, wsh, pft, ldt) VALUES (?, ?, ?, ?, ?)");
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-		}
+//		try {
+//			stmt = con.prepareStatement(
+//					"REPLACE INTO SM2019.D(tkr, yr, prd, esb, esd, ern, shr, wsh, pft, ldt) VALUES (?, ?, ?, ?, ?)");
+//		} catch (Exception e) {
+//			System.out.println(e.getMessage());
+//		}
 
 		for (String t : tickers) {
 			cnt++;
@@ -375,22 +369,70 @@ public class Console {
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
 			fs.bufferAllFilings();
 
-			for (String[] v : fs.getArrayFilings()) {
+			for (String[] v : fs.getTagArray()) {
 
 				try {
 					if (v[0] == null || v[1] == null || v[2] == null || v[3] == null) {
 						// do nothing
 					} else {
 
+						int yr = Integer.parseInt(v[1]);
+						int prd = Integer.parseInt(v[2]);
+						Timestamp ldt = new Timestamp(System.currentTimeMillis());
+						// start date
+						java.sql.Date dt;
 						try {
-							stmt = buildStatement(con, v[0]);
-							stmt.setString(1, t.toUpperCase());
-							stmt.setInt(2, Integer.parseInt(v[1]));
-							stmt.setInt(3, Integer.parseInt(v[2]));
-							stmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-							stmt.setDouble(5, Double.parseDouble(v[3]));
-							stmt.setTimestamp(6, new Timestamp(System.currentTimeMillis()));
-							stmt.setDouble(7, Double.parseDouble(v[3]));
+							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
+									.parse(fs.getTagData(yr, prd, "startDate"))).getTime());
+							stmt = dataTblUpdate(con, "sdt");
+							stmt.setString(1, t.toUpperCase()); // tkr
+							stmt.setInt(2, yr); // yr
+							stmt.setInt(3, prd); // prd
+							stmt.setDate(4, dt); // sdt
+							stmt.setTimestamp(5, ldt); // ldt
+							stmt.setDate(6, dt); // sdt (if dupe key)
+							stmt.setTimestamp(7, ldt); // (if dupe key)
+							stmt.executeUpdate();
+						} catch (NumberFormatException e2) {
+							// skip update
+							stmt.cancel();
+						} catch (ParseException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							stmt.cancel();
+						}
+
+						// end date
+						try {
+							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
+									.parse(fs.getTagData(yr, prd, "endDate"))).getTime());
+							stmt = dataTblUpdate(con, "edt");
+							stmt.setString(1, t.toUpperCase()); // tkr
+							stmt.setInt(2, yr); // yr
+							stmt.setInt(3, prd); // prd
+							stmt.setDate(4, dt); // sdt
+							stmt.setTimestamp(5, ldt); // ldt
+							stmt.setDate(6, dt); // sdt (if dupe key)
+							stmt.setTimestamp(7, ldt); // (if dupe key)
+							stmt.executeUpdate();
+						} catch (NumberFormatException e2) {
+							// skip update
+							stmt.cancel();
+						} catch (ParseException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+							stmt.cancel();
+						}
+
+						try {
+							stmt = dataTblUpdate(con, v[0]);
+							stmt.setString(1, t.toUpperCase()); // tkr
+							stmt.setInt(2, Integer.parseInt(v[1])); // yr
+							stmt.setInt(3, Integer.parseInt(v[2])); // prd
+							stmt.setDouble(4, Double.parseDouble(v[3])); // col
+							stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // ldt
+							stmt.setDouble(6, Double.parseDouble(v[3])); // col (if dupe key)
+							stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // ldt (if dupe key)
 							stmt.executeUpdate();
 						} catch (NumberFormatException e2) {
 							// skip update
@@ -413,11 +455,11 @@ public class Console {
 
 	}
 
-	private static PreparedStatement buildStatement(Connection con, String col) {
+	private static PreparedStatement dataTblUpdate(Connection con, String col) {
 		PreparedStatement stmt = null;
 		try {
-			stmt = con.prepareStatement("INSERT INTO d (tkr, yr, prd, ldt, " + col + ")" + "VALUES (?,?,?,?,?) "
-					+ "ON DUPLICATE KEY UPDATE " + "ldt = ?, " + col + "=?;");
+			stmt = con.prepareStatement("INSERT INTO SM2019.data (tkr, yr, prd, " + col + ", ldt)"
+					+ "VALUES (?,?,?,?,?) " + "ON DUPLICATE KEY UPDATE " + col + "=?," + "ldt=?;");
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

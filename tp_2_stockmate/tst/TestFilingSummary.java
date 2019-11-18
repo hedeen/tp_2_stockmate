@@ -17,11 +17,6 @@ public class TestFilingSummary {
 		fs.setTag("eps");
 	}
 
-	@Test
-	public void testConstructor() {
-		//test does not throw error
-		assertDoesNotThrow(() -> new FilingSummary(ticker));
-	}
 
 	@Test
 	public void testGetCik() {

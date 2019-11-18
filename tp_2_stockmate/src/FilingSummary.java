@@ -22,6 +22,16 @@ public class FilingSummary {
 
 	private String filingPreviewCache = "";
 
+	public static void main(String[] args) {
+
+		FilingSummary fs = new FilingSummary("HOFT", new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
+
+		fs.bufferAllFilings();
+
+		System.out.println(fs.getFilingPreview("\t"));
+
+	}
+
 	public FilingSummary(String ticker, String[] tags) {
 		this.tags = tags;
 		this.ticker = ticker;
@@ -29,11 +39,11 @@ public class FilingSummary {
 		// populateFilings("10-");
 	}
 
-	public FilingSummary(String ticker) {
-		this.ticker = ticker;
-
-		// populateFilings("10-");
-	}
+//	public FilingSummary(String ticker) {
+//		this.ticker = ticker;
+//
+//		// populateFilings("10-");
+//	}
 
 	public void bufferAllFilings() {
 
@@ -41,9 +51,9 @@ public class FilingSummary {
 		populateFilings("10-K");
 		populateFilingData(999);
 
-		// load only the 3 most recent quarters
+		// load only the 12 most recent quarters (3 years)
 		populateFilings("10-Q");
-		populateFilingData(3);
+		populateFilingData(12);
 	}
 
 	public void setTag(String tag) {
@@ -65,7 +75,7 @@ public class FilingSummary {
 		return this.filings.size();
 	}
 
-	public ArrayList<String[]> getArrayFilings() {
+	public ArrayList<String[]> getTagArray() {
 
 		ArrayList<String[]> rtn = new ArrayList<String[]>();
 
@@ -74,8 +84,7 @@ public class FilingSummary {
 				if (this.filingMap.hasPeriodData(yr, prd)) {
 					for (int i = 0; i < this.tags.length; i++) {
 						String tag = this.tags[i];
-						String[] row = new String[] { tag, String.valueOf(yr), String.valueOf(prd),
-								this.filingMap.get(yr, prd, tag) };
+						String[] row = new String[] { tag, String.valueOf(yr), String.valueOf(prd),	this.filingMap.get(yr, prd, tag) };
 						rtn.add(row);
 					}
 				}
@@ -83,7 +92,6 @@ public class FilingSummary {
 		}
 
 		return rtn;
-
 	}
 
 	public String getTagData(int year, int period, String tag) {
@@ -126,7 +134,7 @@ public class FilingSummary {
 		String delim = delimiter;
 
 		// output = ("Filing Data for " + this.ticker) + newline;
-		output = "year" + delim + "period";
+		output = "year" + delim + "period" + delim + "startDate" + delim + "endDate";
 		for (String tag : this.tags) {
 			output = output + (delim + tag);
 		}
@@ -141,7 +149,8 @@ public class FilingSummary {
 						buffer = buffer + this.filingMap.get(yr, prd, tag) + delim;
 					}
 					buffer = buffer + this.filingMap.get(yr, prd, this.tags[this.tags.length - 1]);
-					output = output + (yr + delim + prd + delim + buffer) + newline;
+					output = output + (yr + delim + prd + delim + this.filingMap.get(yr, prd, "startDate") + delim
+							+ this.filingMap.get(yr, prd, "endDate") + delim + buffer) + newline;
 				}
 				buffer = "";
 			}
@@ -216,6 +225,7 @@ public class FilingSummary {
 		String companyPageHTML = getHTML(String.format(
 				"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=%s", cik, filingsFilter));
 
+		// grab table of filings from company page
 		Document doc = Jsoup.parse(companyPageHTML);
 		Element table = doc.select("table[class=tableFile2]").first();
 		Elements rows = table.select("tr");
@@ -291,7 +301,7 @@ public class FilingSummary {
 //			period = Integer.parseInt(fiscalPeriod.substring(1));
 		if (fiscalPeriod.toUpperCase().contains("Q")) {
 			String periodWithoutSpaces = fiscalPeriod.replace(" ", "");
-			period = Integer.parseInt((periodWithoutSpaces.substring(periodWithoutSpaces.lastIndexOf("Q")+1)));
+			period = Integer.parseInt((periodWithoutSpaces.substring(periodWithoutSpaces.lastIndexOf("Q") + 1)));
 		} else {
 
 			if (periodEndDate.getMonthValue() == endDate.getMonthValue() && periodLength == 3) {
@@ -386,8 +396,11 @@ public class FilingSummary {
 									int periodYear = getPeriodYear(doc, endDate);
 									if (periodScope != -1 && periodYear != -1) {
 										this.filingMap.put(periodYear, periodScope, tag, e.text());
+										this.filingMap.put(periodYear, periodScope, "endDate", endDate.toString());
+										this.filingMap.put(periodYear, periodScope, "startDate", startDate.toString());
 									}
 								} catch (NullPointerException e1) {
+									//e1.printStackTrace();
 									// ignore record
 
 								}

@@ -15,6 +15,7 @@ class NestedMap<K, V> {
     @SuppressWarnings("rawtypes")
 	private final HashMap<K, NestedMap> child;
     private V value;
+    private HashMap<String, String> values= new HashMap<String,String>();
 
     public NestedMap() {
         child = new HashMap<>();
@@ -23,6 +24,10 @@ class NestedMap<K, V> {
 
     public boolean hasChild(K k) {
         return this.child.containsKey(k);
+    }
+    
+    public boolean hasChilds(String key) {
+        return this.values.containsKey(key);
     }
 
     @SuppressWarnings("unchecked")
@@ -37,6 +42,14 @@ class NestedMap<K, V> {
 
     public V getValue() {
         return value;
+    }
+    
+    public String getValues(String key) {
+        return values.get(key);
+    }
+    
+    public void setValues(String key, String value) {
+    	values.put(key, value);
     }
 
     public void setValue(V v) {

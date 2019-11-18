@@ -28,7 +28,7 @@ public class EPSdata {
 			for (int i = 0; i < 10; i++) {
 
 				if (i == 0) {
-
+					//first array should always be set to the first value from the incoming sorted list
 					yrs3[0] = yrs[0];
 					vals3[0] = vals[0];
 					if (yrs.length >= 3)
@@ -38,17 +38,19 @@ public class EPSdata {
 					vals5[0] = vals[0];
 					if (yrs.length >= 5)
 						valid5 = true;
-
-					yrs9[0] = yrs[0];
-					vals9[0] = vals[0];
-					if (yrs.length >= 9)
+					
+					//yr9 is special case, skips the most recent annual data
+					yrs9[0] = yrs[1];
+					vals9[0] = vals[1];
+					if (yrs.length >= 10)
 						valid9 = true;
-
+					
 					yrs10[0] = yrs[0];
 					vals10[0] = vals[0];
 					if (yrs.length >= 10)
 						valid10 = true;
-
+	
+					
 				} else {
 
 					if (i < 3 && yrs.length >= 3) {
@@ -69,10 +71,11 @@ public class EPSdata {
 						}
 					}
 
-					if (i < 9 && yrs.length >= 9) {
-						if (yrs[i - 1] - 1 == yrs[i]) {
-							yrs9[i] = yrs[i];
-							vals9[i] = vals[i];
+					//yr9 is special case, skips the most recent annual data and always working ahead
+					if (i < 9 && yrs.length >= 10) {
+						if (yrs9[i - 1] - 1 == yrs[i+1]) {
+							yrs9[i] = yrs[i+1];
+							vals9[i] = vals[i+1];
 						} else {
 							valid9 = false;
 						}
