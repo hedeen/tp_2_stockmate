@@ -25,4 +25,12 @@ public class FilingLocator {
 		parsedDate = LocalDate.parse(date,format);
 		return parsedDate;
 	}
+	
+	public LocalDate getFilingDate() {
+		return this.filingDate;
+	}
+	
+	public String getFilingType() {
+		return this.filingType;
+	}
 }

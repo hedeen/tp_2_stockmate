@@ -6,40 +6,145 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Timer;
 
 public class Console {
 
 	public static void main(String[] args) {
 
+		Instant start = Instant.now();
+
+		
 		Console c = new Console();
-		c.loadQAdataInDB(c.getTickers("D")); //new String[] {"HOFT"});//
-
-		c.loadEPSCalcsInDB(); // 
-
+		// c.loadQAdataInDB(new String[] { "HOFT" });// c.getTickers("D")); //
+		c.LoadAllSandP();
+		c.loadEPSCalcsInDB();
+		c.loadFilingTable();// populates filings table with filing type, filing dates for all tickers in the
+							// EPS table/view
+		// //
 		// int[] latestQtr = c.getLatestQuarterly("MHK");
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
+		System.out.println("Total process took " + Math.floor(Duration.between(start, Instant.now()).getSeconds()/60) + " minutes.");
+	}
+
+	public void loadFilingTable() {
+
+		// populates filings table with filing type, filing dates for all tickers in the
+		// EPS table/view
+
+		Connection con = connectToDB();
+		PreparedStatement stmt = null;
+
+		int cnt = 0;
+
+		String[] tickers = getTickers("EPS");
+
+		try {
+			stmt = con.prepareStatement("REPLACE INTO SM2019.filings(tkr, ftp, fdt, ldt) VALUES (?, ?, ?, ?)");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+
+		for (String tkr : tickers) {
+			cnt++;
+			System.out.println(cnt + " of " + tickers.length + "...(" + tkr + ")");
+			FilingSummary fs = new FilingSummary(tkr, new String[] { "esb" });
+			fs.populateFilings("10-K");
+			fs.populateFilings("10-Q");
+			HashMap<LocalDate, String> filingDates = fs.getFilingDates();
+
+			for (Entry<LocalDate, String> entry : filingDates.entrySet()) {
+				LocalDate fdt = entry.getKey();
+				String ftp = (String) entry.getValue();
+				java.sql.Date dt = null;
+				try {
+					dt = new java.sql.Date(
+							((java.util.Date) new SimpleDateFormat("yyyy-MM-dd").parse(fdt.toString())).getTime());
+				} catch (ParseException e1) {
+					e1.printStackTrace();
+				}
+				try {
+					stmt.setString(1, tkr);
+					stmt.setString(2, ftp);
+					stmt.setDate(3, dt);
+					stmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+					stmt.executeUpdate();
+				} catch (Exception e) {
+					System.out.println(e.getMessage());
+					System.out.println("\t" + ftp);
+				}
+			}
+
+		}
 
 	}
 
 	public void LoadAllSandP() {
 
 		Console c = new Console();
-		// c.loadDataIntoDB(new String[]
-		// {"MMM","ABT","ABBV","ABMD","ACN","ATVI","ADBE","AMD","AAP","AES","AMG","AFL","A","APD","AKAM","ALK","ALB","ARE","ALXN","ALGN","ALLE","AGN","ADS","LNT","ALL","GOOGL","GOOG","MO","AMZN","AMCR","AEE","AAL","AEP","AXP","AIG","AMT","AWK","AMP","ABC","AME","AMGN","APH","ADI","ANSS","ANTM","AON","AOS","APA","AIV","AAPL","AMAT","APTV","ADM","ARNC","ANET","AJG","AIZ","ATO","T","ADSK","ADP","AZO","AVB","AVY","BKR","BLL","BAC","BK","BAX","BBT","BDX","BRK.B","BBY","BIIB","BLK","HRB","BA","BKNG","BWA","BXP","BSX","BMY","AVGO","BR","BF.B","CHRW","COG","CDNS","CPB","COF","CPRI","CAH","KMX","CCL","CAT","CBOE","CBRE","CBS","CDW","CE","CELG","CNC","CNP","CTL","CERN","CF","SCHW","CHTR","CVX","CMG","CB","CHD","CI","XEC","CINF","CTAS","CSCO","C","CFG","CTXS","CLX","CME","CMS","KO","CTSH","CL","CMCSA","CMA","CAG","CXO","COP","ED","STZ","COO","CPRT","GLW","CTVA","COST","COTY","CCI","CSX","CMI","CVS","DHI","DHR","DRI","DVA","DE","DAL","XRAY","DVN","FANG","DLR","DFS","DISCA","DISCK","DISH","DG","DLTR","D","DOV","DOW","DTE","DUK","DRE","DD","DXC","ETFC","EMN","ETN","EBAY","ECL","EIX","EW","EA","EMR","ETR","EOG","EFX","EQIX","EQR","ESS","EL","EVRG","ES","RE","EXC","EXPE","EXPD","EXR","XOM","FFIV","FB","FAST","FRT","FDX","FIS","FITB","FE","FRC","FISV","FLT","FLIR","FLS","FMC","F","FTNT","FTV","FBHS","FOXA","FOX","BEN","FCX","GPS","GRMN","IT","GD","GE","GIS","GM","GPC","GILD","GL","GPN","GS","GWW","HAL","HBI","HOG","HIG","HAS","HCA","HCP","HP","HSIC","HSY","HES","HPE","HLT","HFC","HOLX","HD","HON","HRL","HST","HPQ","HUM","HBAN","HII","IEX","IDXX","INFO","ITW","ILMN","IR","INTC","ICE","IBM","INCY","IP","IPG","IFF","INTU","ISRG","IVZ","IPGP","IQV","IRM","JKHY","JEC","JBHT","SJM","JNJ","JCI","JPM","JNPR","KSU","K","KEY","KEYS","KMB","KIM","KMI","KLAC","KSS","KHC","KR","LB","LHX","LH","LRCX","LW","LVS","LEG","LDOS","LEN","LLY","LNC","LIN","LKQ","LMT","L","LOW","LYB","MTB","MAC","M","MRO","MPC","MKTX","MAR","MMC","MLM","MAS","MA","MKC","MXIM","MCD","MCK","MDT","MRK","MET","MTD","MGM","MCHP","MU","MSFT","MAA","MHK","TAP","MDLZ","MNST","MCO","MS","MOS","MSI","MSCI","MYL","NDAQ","NOV","NTAP","NFLX","NWL","NEM","NWSA","NWS","NEE","NLSN","NKE","NI","NBL","JWN","NSC","NTRS","NOC","NCLH","NRG","NUE","NVDA","NVR","ORLY","OXY","OMC","OKE","ORCL","PCAR","PKG","PH","PAYX","PYPL","PNR","PBCT","PEP","PKI","PRGO","PFE","PM","PSX","PNW","PXD","PNC","PPG","PPL","PFG","PG","PGR","PLD","PRU","PEG","PSA","PHM","PVH","QRVO","PWR","QCOM","DGX","RL","RJF","RTN","O","REG","REGN","RF","RSG","RMD","RHI","ROK","ROL","ROP","ROST","RCL","CRM","SBAC","SLB","STX","SEE","SRE","SHW","SPG","SWKS","SLG","SNA","SO","LUV","SPGI","SWK","SBUX","STT","SYK","STI","SIVB","SYMC","SYF","SNPS","SYY","TMUS","TROW","TTWO","TPR","TGT","TEL","FTI","TFX","TXN","TXT","TMO","TIF","TWTR","TJX","TSCO","TDG","TRV","TRIP","TSN","UDR","ULTA","USB","UAA","UA","UNP","UAL","UNH","UPS","URI","UTX","UHS","UNM","VFC","VLO","VAR","VTR","VRSN","VRSK","VZ","VRTX","VIAB","V","VNO","VMC","WAB","WMT","WBA","DIS","WM","WAT","WEC","WCG","WFC","WELL","WDC","WU","WRK","WY","WHR","WMB","WLTW","WYNN","XEL","XRX","XLNX","XYL","YUM","ZBH","ZION","ZTS"});
+
+		String[] sp500 = new String[] { "MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD", "AAP", "AES", "AMG",
+				"AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "AGN", "ADS", "LNT", "ALL",
+				"GOOGL", "GOOG", "MO", "AMZN", "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP", "ABC",
+				"AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS", "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM",
+				"ARNC", "ANET", "AJG", "AIZ", "ATO", "T", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR", "BLL", "BAC", "BK",
+				"BAX", "BBT", "BDX", "BRK.B", "BBY", "BIIB", "BLK", "HRB", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY",
+				"AVGO", "BR", "BF.B", "CHRW", "COG", "CDNS", "CPB", "COF", "CPRI", "CAH", "KMX", "CCL", "CAT", "CBOE",
+				"CBRE", "CBS", "CDW", "CE", "CELG", "CNC", "CNP", "CTL", "CERN", "CF", "SCHW", "CHTR", "CVX", "CMG",
+				"CB", "CHD", "CI", "XEC", "CINF", "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO", "CTSH",
+				"CL", "CMCSA", "CMA", "CAG", "CXO", "COP", "ED", "STZ", "COO", "CPRT", "GLW", "CTVA", "COST", "COTY",
+				"CCI", "CSX", "CMI", "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN", "FANG", "DLR",
+				"DFS", "DISCA", "DISCK", "DISH", "DG", "DLTR", "D", "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC",
+				"ETFC", "EMN", "ETN", "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX", "EQIX", "EQR",
+				"ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE", "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT",
+				"FDX", "FIS", "FITB", "FE", "FRC", "FISV", "FLT", "FLIR", "FLS", "FMC", "F", "FTNT", "FTV", "FBHS",
+				"FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT", "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN",
+				"GS", "GWW", "HAL", "HBI", "HOG", "HIG", "HAS", "HCA", "HCP", "HP", "HSIC", "HSY", "HES", "HPE", "HLT",
+				"HFC", "HOLX", "HD", "HON", "HRL", "HST", "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "INFO", "ITW",
+				"ILMN", "IR", "INTC", "ICE", "IBM", "INCY", "IP", "IPG", "IFF", "INTU", "ISRG", "IVZ", "IPGP", "IQV",
+				"IRM", "JKHY", "JEC", "JBHT", "SJM", "JNJ", "JCI", "JPM", "JNPR", "KSU", "K", "KEY", "KEYS", "KMB",
+				"KIM", "KMI", "KLAC", "KSS", "KHC", "KR", "LB", "LHX", "LH", "LRCX", "LW", "LVS", "LEG", "LDOS", "LEN",
+				"LLY", "LNC", "LIN", "LKQ", "LMT", "L", "LOW", "LYB", "MTB", "MAC", "M", "MRO", "MPC", "MKTX", "MAR",
+				"MMC", "MLM", "MAS", "MA", "MKC", "MXIM", "MCD", "MCK", "MDT", "MRK", "MET", "MTD", "MGM", "MCHP", "MU",
+				"MSFT", "MAA", "MHK", "TAP", "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "MYL", "NDAQ", "NOV",
+				"NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN", "NKE", "NI", "NBL", "JWN", "NSC", "NTRS",
+				"NOC", "NCLH", "NRG", "NUE", "NVDA", "NVR", "ORLY", "OXY", "OMC", "OKE", "ORCL", "PCAR", "PKG", "PH",
+				"PAYX", "PYPL", "PNR", "PBCT", "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC", "PPG",
+				"PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA", "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL",
+				"RJF", "RTN", "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL", "ROP", "ROST", "RCL", "CRM",
+				"SBAC", "SLB", "STX", "SEE", "SRE", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SPGI", "SWK",
+				"SBUX", "STT", "SYK", "STI", "SIVB", "SYMC", "SYF", "SNPS", "SYY", "TMUS", "TROW", "TTWO", "TPR", "TGT",
+				"TEL", "FTI", "TFX", "TXN", "TXT", "TMO", "TIF", "TWTR", "TJX", "TSCO", "TDG", "TRV", "TRIP", "TSN",
+				"UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UTX", "UHS", "UNM", "VFC", "VLO",
+				"VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAB", "V", "VNO", "VMC", "WAB", "WMT", "WBA", "DIS", "WM",
+				"WAT", "WEC", "WCG", "WFC", "WELL", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL",
+				"XRX", "XLNX", "XYL", "YUM", "ZBH", "ZION", "ZTS" };
+		c.loadQAdataInDB(sp500);
 		// bad is AEE
 		// last was DOV
 		// "DOW","DTE","DUK","DRE","DD","DXC","ETFC","EMN","ETN","EBAY","ECL","EIX","EW","EA","EMR","ETR","EOG","EFX","EQIX","EQR","ESS","EL","EVRG","ES","RE","EXC","EXPE","EXPD","EXR","XOM","FFIV","FB","FAST","FRT","FDX","FIS","FITB","FE","FRC","FISV","FLT","FLIR","FLS","FMC","F","FTNT","FTV","FBHS","FOXA","FOX","BEN","FCX","GPS","GRMN","IT","GD","GE","GIS","GM","GPC","GILD","GL","GPN","GS","GWW","HAL","HBI","HOG","HIG","HAS","HCA","HCP","HP","HSIC","HSY","HES","HPE","HLT","HFC","HOLX","HD","HON","HRL","HST","HPQ","HUM","HBAN","HII","IEX","IDXX","INFO","ITW","ILMN","IR","INTC","ICE","IBM","INCY","IP","IPG","IFF","INTU","ISRG","IVZ","IPGP","IQV","IRM","JKHY","JEC","JBHT","SJM","JNJ","JCI","JPM","JNPR","KSU","K","KEY","KEYS","KMB","KIM","KMI","KLAC","KSS","KHC","KR","LB","LHX","LH","LRCX","LW","LVS","LEG","LDOS","LEN","LLY","LNC","LIN","LKQ","LMT","L","LOW","LYB","MTB","MAC","M","MRO","MPC","MKTX","MAR","MMC","MLM","MAS","MA","MKC","MXIM","MCD","MCK","MDT","MRK","MET","MTD","MGM","MCHP","MU","MSFT","MAA","MHK","TAP","MDLZ","MNST","MCO","MS","MOS","MSI","MSCI","MYL","NDAQ","NOV","NTAP","NFLX","NWL","NEM","NWSA","NWS","NEE","NLSN","NKE","NI","NBL","JWN","NSC","NTRS","NOC","NCLH","NRG","NUE","NVDA","NVR","ORLY","OXY","OMC","OKE","ORCL","PCAR","PKG","PH","PAYX","PYPL","PNR","PBCT","PEP","PKI","PRGO","PFE","PM","PSX","PNW","PXD","PNC","PPG","PPL","PFG","PG","PGR","PLD","PRU","PEG","PSA","PHM","PVH","QRVO","PWR","QCOM","DGX","RL","RJF","RTN","O","REG","REGN","RF","RSG","RMD","RHI","ROK","ROL","ROP","ROST","RCL","CRM","SBAC","SLB","STX","SEE","SRE","SHW","SPG","SWKS","SLG","SNA","SO","LUV","SPGI","SWK","SBUX","STT","SYK","STI","SIVB","SYMC","SYF","SNPS","SYY","TMUS","TROW","TTWO","TPR","TGT","TEL","FTI","TFX","TXN","TXT","TMO","TIF","TWTR","TJX","TSCO","TDG","TRV","TRIP","TSN","UDR","ULTA","USB","UAA","UA","UNP","UAL","UNH","UPS","URI","UTX","UHS","UNM","VFC","VLO","VAR","VTR","VRSN","VRSK","VZ","VRTX","VIAB","V","VNO","VMC","WAB","WMT","WBA","DIS","WM","WAT","WEC","WCG","WFC","WELL","WDC","WU","WRK","WY","WHR","WMB","WLTW","WYNN","XEL","XRX","XLNX","XYL","YUM","ZBH","ZION","ZTS"});
 		// c.loadDataIntoDB(new String[]
 		// {"AAL","AEP","AXP","AIG","AMT","AWK","AMP","ABC","AME","AMGN","APH","ADI","ANSS","ANTM","AON","AOS","APA","AIV","AAPL","AMAT","APTV","ADM","ARNC","ANET","AJG","AIZ","ATO","T","ADSK","ADP","AZO","AVB","AVY","BKR","BLL","BAC","BK","BAX","BBT","BDX","BRK.B","BBY","BIIB","BLK","HRB","BA","BKNG","BWA","BXP","BSX","BMY","AVGO","BR","BF.B","CHRW","COG","CDNS","CPB","COF","CPRI","CAH","KMX","CCL","CAT","CBOE","CBRE","CBS","CDW","CE","CELG","CNC","CNP","CTL","CERN","CF","SCHW","CHTR","CVX","CMG","CB","CHD","CI","XEC","CINF","CTAS","CSCO","C","CFG","CTXS","CLX","CME","CMS","KO","CTSH","CL","CMCSA","CMA","CAG","CXO","COP","ED","STZ","COO","CPRT","GLW","CTVA","COST","COTY","CCI","CSX","CMI","CVS","DHI","DHR","DRI","DVA","DE","DAL","XRAY","DVN","FANG","DLR","DFS","DISCA","DISCK","DISH","DG","DLTR","D","DOV","DOW","DTE","DUK","DRE","DD","DXC","ETFC","EMN","ETN","EBAY","ECL","EIX","EW","EA","EMR","ETR","EOG","EFX","EQIX","EQR","ESS","EL","EVRG","ES","RE","EXC","EXPE","EXPD","EXR","XOM","FFIV","FB","FAST","FRT","FDX","FIS","FITB","FE","FRC","FISV","FLT","FLIR","FLS","FMC","F","FTNT","FTV","FBHS","FOXA","FOX","BEN","FCX","GPS","GRMN","IT","GD","GE","GIS","GM","GPC","GILD","GL","GPN","GS","GWW","HAL","HBI","HOG","HIG","HAS","HCA","HCP","HP","HSIC","HSY","HES","HPE","HLT","HFC","HOLX","HD","HON","HRL","HST","HPQ","HUM","HBAN","HII","IEX","IDXX","INFO","ITW","ILMN","IR","INTC","ICE","IBM","INCY","IP","IPG","IFF","INTU","ISRG","IVZ","IPGP","IQV","IRM","JKHY","JEC","JBHT","SJM","JNJ","JCI","JPM","JNPR","KSU","K","KEY","KEYS","KMB","KIM","KMI","KLAC","KSS","KHC","KR","LB","LHX","LH","LRCX","LW","LVS","LEG","LDOS","LEN","LLY","LNC","LIN","LKQ","LMT","L","LOW","LYB","MTB","MAC","M","MRO","MPC","MKTX","MAR","MMC","MLM","MAS","MA","MKC","MXIM","MCD","MCK","MDT","MRK","MET","MTD","MGM","MCHP","MU","MSFT","MAA","MHK","TAP","MDLZ","MNST","MCO","MS","MOS","MSI","MSCI","MYL","NDAQ","NOV","NTAP","NFLX","NWL","NEM","NWSA","NWS","NEE","NLSN","NKE","NI","NBL","JWN","NSC","NTRS","NOC","NCLH","NRG","NUE","NVDA","NVR","ORLY","OXY","OMC","OKE","ORCL","PCAR","PKG","PH","PAYX","PYPL","PNR","PBCT","PEP","PKI","PRGO","PFE","PM","PSX","PNW","PXD","PNC","PPG","PPL","PFG","PG","PGR","PLD","PRU","PEG","PSA","PHM","PVH","QRVO","PWR","QCOM","DGX","RL","RJF","RTN","O","REG","REGN","RF","RSG","RMD","RHI","ROK","ROL","ROP","ROST","RCL","CRM","SBAC","SLB","STX","SEE","SRE","SHW","SPG","SWKS","SLG","SNA","SO","LUV","SPGI","SWK","SBUX","STT","SYK","STI","SIVB","SYMC","SYF","SNPS","SYY","TMUS","TROW","TTWO","TPR","TGT","TEL","FTI","TFX","TXN","TXT","TMO","TIF","TWTR","TJX","TSCO","TDG","TRV","TRIP","TSN","UDR","ULTA","USB","UAA","UA","UNP","UAL","UNH","UPS","URI","UTX","UHS","UNM","VFC","VLO","VAR","VTR","VRSN","VRSK","VZ","VRTX","VIAB","V","VNO","VMC","WAB","WMT","WBA","DIS","WM","WAT","WEC","WCG","WFC","WELL","WDC","WU","WRK","WY","WHR","WMB","WLTW","WYNN","XEL","XRX","XLNX","XYL","YUM","ZBH","ZION","ZTS"});
 		// bad was "DOW"
-		c.loadQAdataInDB(new String[] { "RCL", "CRM", "SBAC", "SLB", "STX", "SEE", "SRE", "SHW", "SPG", "SWKS", "SLG",
-				"SNA", "SO", "LUV", "SPGI", "SWK", "SBUX", "STT", "SYK", "STI", "SIVB", "SYMC", "SYF", "SNPS", "SYY",
-				"TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TFX", "TXN", "TXT", "TMO", "TIF", "TWTR", "TJX",
-				"TSCO", "TDG", "TRV", "TRIP", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS",
-				"URI", "UTX", "UHS", "UNM", "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAB", "V",
-				"VNO", "VMC", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WCG", "WFC", "WELL", "WDC", "WU", "WRK",
-				"WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX", "XYL", "YUM", "ZBH", "ZION", "ZTS" });
+		/*
+		 * c.loadQAdataInDB(new String[] { "RCL", "CRM", "SBAC", "SLB", "STX", "SEE",
+		 * "SRE", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SPGI", "SWK",
+		 * "SBUX", "STT", "SYK", "STI", "SIVB", "SYMC", "SYF", "SNPS", "SYY", "TMUS",
+		 * "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TFX", "TXN", "TXT", "TMO",
+		 * "TIF", "TWTR", "TJX", "TSCO", "TDG", "TRV", "TRIP", "TSN", "UDR", "ULTA",
+		 * "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UTX", "UHS", "UNM",
+		 * "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAB", "V", "VNO",
+		 * "VMC", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WCG", "WFC", "WELL",
+		 * "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX",
+		 * "XYL", "YUM", "ZBH", "ZION", "ZTS" });
+		 */
 		// System.out.println(c.getLatestQuarterly("MHK")[0]);
 		// System.out.println(c.getLatestQuarterly("MHK")[1]);
 		// System.out.println(c.hasAnnualsForXyrs("MHK", 5));
@@ -52,8 +157,8 @@ public class Console {
 		int maxYr = -1;
 		ResultSet rs;
 		try {
-			rs = con.prepareStatement("SELECT MAX(D.prd), MAX(D.yr) " + "FROM SM2019.D "
-					+ "JOIN (SELECT MAX(yr) mYr FROM SM2019.D WHERE prd > 0 AND tkr='" + ticker
+			rs = con.prepareStatement("SELECT MAX(D.prd), MAX(D.yr) " + "FROM SM2019.DATA "
+					+ "JOIN (SELECT MAX(yr) mYr FROM SM2019.DATA WHERE prd > 0 AND tkr='" + ticker
 					+ "') M ON M.mYr = D.yr;").executeQuery();
 
 			if (rs.next()) {
@@ -127,7 +232,8 @@ public class Console {
 		ResultSet rs;
 		try {
 			rs = con.prepareStatement(
-					"SELECT MAX(D.yr) " + "FROM SM2019.D " + "WHERE prd = 0 AND tkr='" + ticker + "';").executeQuery();
+					"SELECT MAX(D.yr) " + "FROM SM2019.DATA " + "WHERE prd = 0 AND tkr='" + ticker + "';")
+					.executeQuery();
 
 			if (rs.next()) {
 				maxYr = rs.getInt(1);
@@ -151,8 +257,8 @@ public class Console {
 
 		for (int yr = maxYr; yr > minYr; yr--) {
 			try {
-				String sql = "SELECT COUNT(*) " + "FROM SM2019.D " + "WHERE prd = 0 AND tkr='" + ticker + "' AND yr = "
-						+ yr + ";";
+				String sql = "SELECT COUNT(*) " + "FROM SM2019.DATA " + "WHERE prd = 0 AND tkr='" + ticker
+						+ "' AND yr = " + yr + ";";
 				rs = con.prepareStatement(sql).executeQuery();
 
 				if (rs.next()) {
@@ -362,88 +468,114 @@ public class Console {
 //		} catch (Exception e) {
 //			System.out.println(e.getMessage());
 //		}
-
+		Instant start = Instant.now();
 		for (String t : tickers) {
 			cnt++;
-			System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
+			
+			if (cnt > 1) {
+				System.out.println(cnt + " of " + tickers.length + "...(" + t + ") ["
+						+ Math.floor(Duration.between(start, Instant.now()).getSeconds() / (cnt-1)) + " secs/stock]");
+				
+				}else{
+					System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
+				};
+				
+
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
 			fs.bufferAllFilings();
 
 			for (String[] v : fs.getTagArray()) {
 
-				try {
-					if (v[0] == null || v[1] == null || v[2] == null || v[3] == null) {
-						// do nothing
-					} else {
+				if (v[0] == null || v[1] == null || v[2] == null || v[3] == null) {
+					// do nothing
+				} else {
 
-						int yr = Integer.parseInt(v[1]);
-						int prd = Integer.parseInt(v[2]);
-						Timestamp ldt = new Timestamp(System.currentTimeMillis());
-						// start date
-						java.sql.Date dt;
-						try {
-							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
-									.parse(fs.getTagData(yr, prd, "startDate"))).getTime());
-							stmt = dataTblUpdate(con, "sdt");
-							stmt.setString(1, t.toUpperCase()); // tkr
-							stmt.setInt(2, yr); // yr
-							stmt.setInt(3, prd); // prd
-							stmt.setDate(4, dt); // sdt
-							stmt.setTimestamp(5, ldt); // ldt
-							stmt.setDate(6, dt); // sdt (if dupe key)
-							stmt.setTimestamp(7, ldt); // (if dupe key)
-							stmt.executeUpdate();
-						} catch (NumberFormatException e2) {
-							// skip update
-							stmt.cancel();
-						} catch (ParseException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							stmt.cancel();
-						}
+					String tkr = t.toUpperCase();
+					int yr = Integer.parseInt(v[1]);
+					int prd = Integer.parseInt(v[2]);
 
-						// end date
-						try {
-							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
-									.parse(fs.getTagData(yr, prd, "endDate"))).getTime());
-							stmt = dataTblUpdate(con, "edt");
-							stmt.setString(1, t.toUpperCase()); // tkr
-							stmt.setInt(2, yr); // yr
-							stmt.setInt(3, prd); // prd
-							stmt.setDate(4, dt); // sdt
-							stmt.setTimestamp(5, ldt); // ldt
-							stmt.setDate(6, dt); // sdt (if dupe key)
-							stmt.setTimestamp(7, ldt); // (if dupe key)
-							stmt.executeUpdate();
-						} catch (NumberFormatException e2) {
-							// skip update
-							stmt.cancel();
-						} catch (ParseException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-							stmt.cancel();
-						}
+					// start date
+					String colName = "sdt";
+					String colData = fs.getTagData(yr, prd, "startDate");
+					String colType = "DATE";
+					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
 
-						try {
-							stmt = dataTblUpdate(con, v[0]);
-							stmt.setString(1, t.toUpperCase()); // tkr
-							stmt.setInt(2, Integer.parseInt(v[1])); // yr
-							stmt.setInt(3, Integer.parseInt(v[2])); // prd
-							stmt.setDouble(4, Double.parseDouble(v[3])); // col
-							stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // ldt
-							stmt.setDouble(6, Double.parseDouble(v[3])); // col (if dupe key)
-							stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // ldt (if dupe key)
-							stmt.executeUpdate();
-						} catch (NumberFormatException e2) {
-							// skip update
-							stmt.cancel();
-						}
+					// end date
+					colName = "edt";
+					colData = fs.getTagData(yr, prd, "endDate");
+					colType = "DATE";
+					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
 
-					}
+//					// filing date
+//					colName = "fdt";
+//					colData = fs.getTagData(yr, prd, "filingDate");
+//					colType = "DATE";
+//					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
 
-				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					// rest of array data
+					colName = v[0];
+					colData = v[3];
+					colType = "DBL";
+					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
+
+//						try {
+//							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
+//									.parse(fs.getTagData(yr, prd, "startDate"))).getTime());
+//							stmt = dataTblUpdate(con, "sdt");
+//							stmt.setString(1, t.toUpperCase()); // tkr
+//							stmt.setInt(2, yr); // yr
+//							stmt.setInt(3, prd); // prd
+//							stmt.setDate(4, dt); // sdt
+//							stmt.setTimestamp(5, ldt); // ldt
+//							stmt.setDate(6, dt); // sdt (if dupe key)
+//							stmt.setTimestamp(7, ldt); // (if dupe key)
+//							stmt.executeUpdate();
+//						} catch (NumberFormatException e2) {
+//							// skip update
+//							stmt.cancel();
+//						} catch (ParseException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//							stmt.cancel();
+//						}
+//
+//						// end date
+//						try {
+//							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
+//									.parse(fs.getTagData(yr, prd, "endDate"))).getTime());
+//							stmt = dataTblUpdate(con, "edt");
+//							stmt.setString(1, t.toUpperCase()); // tkr
+//							stmt.setInt(2, yr); // yr
+//							stmt.setInt(3, prd); // prd
+//							stmt.setDate(4, dt); // sdt
+//							stmt.setTimestamp(5, ldt); // ldt
+//							stmt.setDate(6, dt); // sdt (if dupe key)
+//							stmt.setTimestamp(7, ldt); // (if dupe key)
+//							stmt.executeUpdate();
+//						} catch (NumberFormatException e2) {
+//							// skip update
+//							stmt.cancel();
+//						} catch (ParseException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//							stmt.cancel();
+//						}
+//
+//						try {
+//							stmt = dataTblUpdate(con, v[0]);
+//							stmt.setString(1, t.toUpperCase()); // tkr
+//							stmt.setInt(2, Integer.parseInt(v[1])); // yr
+//							stmt.setInt(3, Integer.parseInt(v[2])); // prd
+//							stmt.setDouble(4, Double.parseDouble(v[3])); // col
+//							stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // ldt
+//							stmt.setDouble(6, Double.parseDouble(v[3])); // col (if dupe key)
+//							stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // ldt (if dupe key)
+//							stmt.executeUpdate();
+//						} catch (NumberFormatException e2) {
+//							// skip update
+//							stmt.cancel();
+//						}
+
 				}
 
 			}
@@ -455,17 +587,47 @@ public class Console {
 
 	}
 
-	private static PreparedStatement dataTblUpdate(Connection con, String col) {
+	private static boolean insertFilingData(Connection con, String tkr, int yr, int prd, String colName, String colData,
+			String colType) {
 		PreparedStatement stmt = null;
+		Timestamp ldt = new Timestamp(System.currentTimeMillis());
 		try {
-			stmt = con.prepareStatement("INSERT INTO SM2019.data (tkr, yr, prd, " + col + ", ldt)"
-					+ "VALUES (?,?,?,?,?) " + "ON DUPLICATE KEY UPDATE " + col + "=?," + "ldt=?;");
+			try {
+				stmt = con.prepareStatement("INSERT INTO SM2019.data (tkr, yr, prd, " + colName + ", ldt)"
+						+ "VALUES (?,?,?,?,?) " + "ON DUPLICATE KEY UPDATE " + colName + "=?," + "ldt=?;");
+
+				stmt.setString(1, tkr.toUpperCase()); // tkr
+				stmt.setInt(2, yr); // yr
+				stmt.setInt(3, prd); // prd
+
+				if (colType.equalsIgnoreCase("DATE")) {
+					java.sql.Date dt = new java.sql.Date(
+							((java.util.Date) new SimpleDateFormat("yyyy-MM-dd").parse(colData)).getTime());
+					stmt.setDate(4, dt); // col dt
+					stmt.setDate(6, dt); // col dt (if dupe key)
+				} else if (colType.equalsIgnoreCase("DBL")) {
+					stmt.setDouble(4, Double.parseDouble(colData)); // dbl col
+					stmt.setDouble(6, Double.parseDouble(colData)); // dbl col (if dupe key)
+				} else {
+					System.out.println("fatal error, unknown data type");
+					System.exit(-1);
+				}
+
+				stmt.setTimestamp(5, ldt); // ldt
+				stmt.setTimestamp(7, ldt); // (if dupe key)
+				stmt.executeUpdate();
+			} catch (NumberFormatException e2) {
+				stmt.cancel();
+				return false;
+			} catch (ParseException e) {
+				e.printStackTrace();
+				stmt.cancel();
+				return false;
+			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return false;
 		}
-
-		return stmt;
-
+		return true;
 	}
 }

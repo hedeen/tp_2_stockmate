@@ -5,9 +5,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP ON SM2019.* TO sm@'%' IDENTIF
 mysql -usm -pstockmate SM2019
 DROP TABLE SM2019.data;
 CREATE TABLE SM2019.data ( 
-	tkr char(4) not null,
+	tkr varchar(5) not null,
 	yr YEAR not null,
 	prd CHAR(1) not null,
+	hst char(1) DEFAULT 'N',
 	esb FLOAT,
 	esd FLOAT,
 	ern FLOAT,
@@ -21,22 +22,13 @@ CREATE TABLE SM2019.data (
 	CONSTRAINT pk_d PRIMARY KEY (tkr, yr, prd) 
 );
 --
-DROP TABLE SM2019.data;
-CREATE TABLE SM2019.data ( 
-	tkr char(4) not null,
-	yr YEAR not null,
-	prd CHAR(1) not null,
-	esb FLOAT,
-	esd FLOAT,
-	ern FLOAT,
-	shb FLOAT,
-	shd FLOAT,
-	pft FLOAT,
-	gpf FLOAT,
-	sdt DATE,
-	edt DATE,
+DROP TABLE SM2019.filings;
+CREATE TABLE SM2019.filings ( 
+	tkr varchar(5) not null,
+	ftp char(6) not null,
+	fdt DATE,
 	ldt DATETIME DEFAULT SYSDATE(),
-	CONSTRAINT pk_d PRIMARY KEY (tkr, yr, prd) 
+	CONSTRAINT pk_d PRIMARY KEY (tkr, ftp, fdt) 
 );
 --
 CREATE OR REPLACE VIEW SM2019.EPS AS
@@ -60,7 +52,7 @@ FROM SM2019.data;
 --REPLACE INTO d VALUES ('jnj',2010,0,'eps',2.4,now());
 DROP TABLE SM2019.calcs;
 CREATE TABLE SM2019.calcs ( 
-	tkr char(4) PRIMARY KEY,
+	tkr varchar(5) PRIMARY KEY,
 	r3 FLOAT,
 	m3 FLOAT,
 	b3 FLOAT,
@@ -109,4 +101,15 @@ WITH T AS (
 		HAVING COUNT(*) = 4) 
 	AND (e.tkr,e.yr) NOT IN (SELECT tkr, yr FROM eps WHERE prd = 4)
 )
-SELECT * FROM T WHERE EPS IS NOT NULL ORDER BY 2,3;
+DROP TABLE rprices;
+CREATE TABLE rprices (
+#recent close prices
+	tkr varchar(5) NOT NULL,
+	cdt DATE NOT NULL,
+	cpr DECIMAL(15,4) NULL,
+	ldt DATETIME DEFAULT NOW(),
+	PRIMARY KEY (tkr, cdt)
+);
+ALTER TABLE SM2019.data ADD COLUMN hst char(1) DEFAULT 'N' AFTER prd;
+INSERT IGNORE INTO SM2019.data (tkr,yr,prd,hst,esb,esd,ern,ldt) SELECT ticker,yr,0,'Y',eps,epsdil,netinc,loaddate FROM S.D;
+INSERT IGNORE INTO SM2019.data (tkr,yr,prd,hst,esb,esd,ern,ldt) SELECT ticker,yr,RANK() OVER (PARTITION BY ticker, yr ORDER BY mon),'Y',eps,epsdil,netinc,loaddate FROM S.Q;

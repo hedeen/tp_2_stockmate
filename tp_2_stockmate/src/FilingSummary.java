@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,12 +39,21 @@ public class FilingSummary {
 
 		// populateFilings("10-");
 	}
+	
+	public HashMap<LocalDate, String> getFilingDates(){
+		
+		//ArrayList<LocalDate> filingDates = new ArrayList<LocalDate>();
+		
+		HashMap<LocalDate, String> filingDates= new HashMap<LocalDate,String>();
+		
+		for (FilingLocator d : this.filings) {
+			filingDates.put(d.getFilingDate(), d.getFilingType());
+		}
+		
+		return filingDates;
+	}
 
-//	public FilingSummary(String ticker) {
-//		this.ticker = ticker;
-//
-//		// populateFilings("10-");
-//	}
+
 
 	public void bufferAllFilings() {
 
@@ -51,9 +61,11 @@ public class FilingSummary {
 		populateFilings("10-K");
 		populateFilingData(999);
 
-		// load only the 12 most recent quarters (3 years)
+		// load all the quarterlies avail
 		populateFilings("10-Q");
-		populateFilingData(12);
+		populateFilingData(999);
+		// load only the 12 most recent quarters (3 years)
+		//populateFilingData(12);
 	}
 
 	public void setTag(String tag) {
@@ -209,7 +221,7 @@ public class FilingSummary {
 
 	}
 
-	protected void populateFilings(String filingsFilter) {
+	public void populateFilings(String filingsFilter) {
 		// this strips the filing information from the SEC filing table
 
 		String cik = getCIK(this.ticker.toUpperCase());
@@ -398,6 +410,7 @@ public class FilingSummary {
 										this.filingMap.put(periodYear, periodScope, tag, e.text());
 										this.filingMap.put(periodYear, periodScope, "endDate", endDate.toString());
 										this.filingMap.put(periodYear, periodScope, "startDate", startDate.toString());
+										this.filingMap.put(periodYear, periodScope, "filingDate", d.getFilingDate().toString());
 									}
 								} catch (NullPointerException e1) {
 									//e1.printStackTrace();
