@@ -10,10 +10,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.Timer;
+import java.util.stream.Collectors;
 
 public class Console {
 
@@ -21,17 +22,17 @@ public class Console {
 
 		Instant start = Instant.now();
 
-		
 		Console c = new Console();
 		// c.loadQAdataInDB(new String[] { "HOFT" });// c.getTickers("D")); //
-		c.LoadAllSandP();
+		c.LoadAllSandP(false);
 		c.loadEPSCalcsInDB();
 		c.loadFilingTable();// populates filings table with filing type, filing dates for all tickers in the
 							// EPS table/view
 		// //
 		// int[] latestQtr = c.getLatestQuarterly("MHK");
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
-		System.out.println("Total process took " + Math.floor(Duration.between(start, Instant.now()).getSeconds()/60) + " minutes.");
+		System.out.println("Total process took " + Math.floor(Duration.between(start, Instant.now()).getSeconds() / 60)
+				+ " minutes.");
 	}
 
 	public void loadFilingTable() {
@@ -86,7 +87,7 @@ public class Console {
 
 	}
 
-	public void LoadAllSandP() {
+	public void LoadAllSandP(boolean OnlyMissing) {
 
 		Console c = new Console();
 
@@ -126,7 +127,13 @@ public class Console {
 				"VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAB", "V", "VNO", "VMC", "WAB", "WMT", "WBA", "DIS", "WM",
 				"WAT", "WEC", "WCG", "WFC", "WELL", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL",
 				"XRX", "XLNX", "XYL", "YUM", "ZBH", "ZION", "ZTS" };
-		c.loadQAdataInDB(sp500);
+		List<String> sp500collection = Arrays.asList(sp500);
+		List<String> currentInventory = Arrays.asList(getTickers("data"));
+		List<String> diff = sp500collection.stream().filter(e -> !currentInventory.contains(e))
+				.collect(Collectors.toList());
+//		String[] missingTickers = sp500collection.toArray(new String[sp500collection.size()]);
+
+		c.loadQAdataInDB(diff.toArray(new String[diff.size()]));
 		// bad is AEE
 		// last was DOV
 		// "DOW","DTE","DUK","DRE","DD","DXC","ETFC","EMN","ETN","EBAY","ECL","EIX","EW","EA","EMR","ETR","EOG","EFX","EQIX","EQR","ESS","EL","EVRG","ES","RE","EXC","EXPE","EXPD","EXR","XOM","FFIV","FB","FAST","FRT","FDX","FIS","FITB","FE","FRC","FISV","FLT","FLIR","FLS","FMC","F","FTNT","FTV","FBHS","FOXA","FOX","BEN","FCX","GPS","GRMN","IT","GD","GE","GIS","GM","GPC","GILD","GL","GPN","GS","GWW","HAL","HBI","HOG","HIG","HAS","HCA","HCP","HP","HSIC","HSY","HES","HPE","HLT","HFC","HOLX","HD","HON","HRL","HST","HPQ","HUM","HBAN","HII","IEX","IDXX","INFO","ITW","ILMN","IR","INTC","ICE","IBM","INCY","IP","IPG","IFF","INTU","ISRG","IVZ","IPGP","IQV","IRM","JKHY","JEC","JBHT","SJM","JNJ","JCI","JPM","JNPR","KSU","K","KEY","KEYS","KMB","KIM","KMI","KLAC","KSS","KHC","KR","LB","LHX","LH","LRCX","LW","LVS","LEG","LDOS","LEN","LLY","LNC","LIN","LKQ","LMT","L","LOW","LYB","MTB","MAC","M","MRO","MPC","MKTX","MAR","MMC","MLM","MAS","MA","MKC","MXIM","MCD","MCK","MDT","MRK","MET","MTD","MGM","MCHP","MU","MSFT","MAA","MHK","TAP","MDLZ","MNST","MCO","MS","MOS","MSI","MSCI","MYL","NDAQ","NOV","NTAP","NFLX","NWL","NEM","NWSA","NWS","NEE","NLSN","NKE","NI","NBL","JWN","NSC","NTRS","NOC","NCLH","NRG","NUE","NVDA","NVR","ORLY","OXY","OMC","OKE","ORCL","PCAR","PKG","PH","PAYX","PYPL","PNR","PBCT","PEP","PKI","PRGO","PFE","PM","PSX","PNW","PXD","PNC","PPG","PPL","PFG","PG","PGR","PLD","PRU","PEG","PSA","PHM","PVH","QRVO","PWR","QCOM","DGX","RL","RJF","RTN","O","REG","REGN","RF","RSG","RMD","RHI","ROK","ROL","ROP","ROST","RCL","CRM","SBAC","SLB","STX","SEE","SRE","SHW","SPG","SWKS","SLG","SNA","SO","LUV","SPGI","SWK","SBUX","STT","SYK","STI","SIVB","SYMC","SYF","SNPS","SYY","TMUS","TROW","TTWO","TPR","TGT","TEL","FTI","TFX","TXN","TXT","TMO","TIF","TWTR","TJX","TSCO","TDG","TRV","TRIP","TSN","UDR","ULTA","USB","UAA","UA","UNP","UAL","UNH","UPS","URI","UTX","UHS","UNM","VFC","VLO","VAR","VTR","VRSN","VRSK","VZ","VRTX","VIAB","V","VNO","VMC","WAB","WMT","WBA","DIS","WM","WAT","WEC","WCG","WFC","WELL","WDC","WU","WRK","WY","WHR","WMB","WLTW","WYNN","XEL","XRX","XLNX","XYL","YUM","ZBH","ZION","ZTS"});
@@ -450,7 +457,7 @@ public class Console {
 	public void loadQAdataInDB(String[] tickers) {
 
 		Connection con = connectToDB();
-		PreparedStatement stmt = null;
+		//PreparedStatement stmt = null;
 
 		int cnt = 0;
 
@@ -471,15 +478,15 @@ public class Console {
 		Instant start = Instant.now();
 		for (String t : tickers) {
 			cnt++;
-			
+
 			if (cnt > 1) {
 				System.out.println(cnt + " of " + tickers.length + "...(" + t + ") ["
-						+ Math.floor(Duration.between(start, Instant.now()).getSeconds() / (cnt-1)) + " secs/stock]");
-				
-				}else{
-					System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
-				};
-				
+						+ Math.floor(Duration.between(start, Instant.now()).getSeconds() / (cnt - 1)) + " secs/stock]");
+
+			} else {
+				System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
+			}
+			;
 
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
 			fs.bufferAllFilings();

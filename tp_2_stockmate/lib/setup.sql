@@ -27,8 +27,8 @@ CREATE TABLE SM2019.filings (
 	tkr varchar(5) not null,
 	ftp char(6) not null,
 	fdt DATE,
-	ldt DATETIME DEFAULT SYSDATE(),
-	CONSTRAINT pk_d PRIMARY KEY (tkr, ftp, fdt) 
+	ldt DATETIME DEFAULT NOW(),
+	CONSTRAINT pk_filings PRIMARY KEY (tkr, ftp, fdt) 
 );
 --
 CREATE OR REPLACE VIEW SM2019.EPS AS

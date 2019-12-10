@@ -286,7 +286,7 @@ public class FilingSummary {
 		return null;
 	}
 
-	protected LocalDate getContextDate(Element doc, String contextref, String dateType) throws NullPointerException {
+	protected LocalDate getContextDate(Element doc, String contextref, String dateType) throws NullPointerException,DateTimeParseException {
 		// this returns a date for a given element list with a given context for a
 		// specific tag
 		String dateString;
@@ -412,7 +412,7 @@ public class FilingSummary {
 										this.filingMap.put(periodYear, periodScope, "startDate", startDate.toString());
 										this.filingMap.put(periodYear, periodScope, "filingDate", d.getFilingDate().toString());
 									}
-								} catch (NullPointerException e1) {
+								} catch (Exception e1) {
 									//e1.printStackTrace();
 									// ignore record
 
