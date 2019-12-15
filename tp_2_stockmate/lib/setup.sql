@@ -65,7 +65,7 @@ CREATE TABLE SM2019.calcs (
 	r10 FLOAT,
 	m10 FLOAT,
 	b10 FLOAT,
-	cdt DATETIME DEFAULT SYSDATE()
+	cdt DATETIME DEFAULT NOW()
 );
 --
 --
@@ -101,14 +101,30 @@ WITH T AS (
 		HAVING COUNT(*) = 4) 
 	AND (e.tkr,e.yr) NOT IN (SELECT tkr, yr FROM eps WHERE prd = 4)
 )
-DROP TABLE rprices;
-CREATE TABLE rprices (
+DROP TABLE SM2019.rprices;
+CREATE TABLE SM2019.rprices (
 #recent close prices
 	tkr varchar(5) NOT NULL,
 	cdt DATE NOT NULL,
 	cpr DECIMAL(15,4) NULL,
 	ldt DATETIME DEFAULT NOW(),
 	PRIMARY KEY (tkr, cdt)
+);
+DROP TABLE SM2019.hprices;
+CREATE TABLE SM2019.hprices (
+#recent close prices
+	tkr varchar(5) NOT NULL,
+	mend DATE NOT NULL,
+	mhi DECIMAL(15,4) NULL,
+	mlo DECIMAL(15,4) NULL,
+	ldt DATETIME DEFAULT NOW(),
+	PRIMARY KEY (tkr, mend)
+);
+CREATE TABLE SM2019.stocks (
+#list of stocks that will be watched
+	tkr varchar(5) PRIMARY KEY,
+	cpr varchar(4000),
+	ldt DATETIME DEFAULT NOW()
 );
 ALTER TABLE SM2019.data ADD COLUMN hst char(1) DEFAULT 'N' AFTER prd;
 INSERT IGNORE INTO SM2019.data (tkr,yr,prd,hst,esb,esd,ern,ldt) SELECT ticker,yr,0,'Y',eps,epsdil,netinc,loaddate FROM S.D;
