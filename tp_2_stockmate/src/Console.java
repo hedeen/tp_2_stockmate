@@ -19,22 +19,37 @@ import java.util.stream.Collectors;
 
 public class Console {
 
+	Connection con = null;
+
+	public Console() {
+
+		try {
+			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?user=sm&password=stockmate");
+		} catch (SQLException e) {
+
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+
 	public static void main(String[] args) {
 
 		Instant start = Instant.now();
 
 		Console c = new Console();
 		StockPrices sp = new StockPrices();
+		c.popSecFilings(c.getTickersFromTable("stocks"));
+		//sp.updatePrices(c.getTickersFromQuery("SELECT tkr FROM stocks WHERE tkr NOT IN (SELECT tkr FROM rprices)"));
+		//c.loadFilingTable(c.getTickersFromTable("stocks"));
 		//sp.updatePrices(c.getTickersFromTable("stocks"));
-		sp.updatePrices(c.getTickersFromQuery("SELECT tkr FROM stocks WHERE tkr NOT IN (SELECT tkr FROM rprices)"));
-		
-		
-		//c.loadCompanyDescriptions(); //puts company descriptions into stock table
+		//c.loadCompanyInfo(new String[] { "HOFT" }); //puts company descriptions into stock table
 		// c.loadQAdataInDB(new String[] { "HOFT" });// c.getTickers("D")); //
-		//c.LoadAllSandP(false);
+		// c.LoadAllSandP(false);
+		//sp.updatePrices(new String[] { "HOFT" });
 		//c.loadEPSCalcsInDB();
-		//c.loadFilingTable();// populates filings table with filing type, filing dates for all tickers in the
-		//					// EPS table/view
+		//c.loadFilingTable(new String[] { "HOFT" });// populates filings table with filing type, filing dates
+		// for all tickers in the
+		// // EPS table/view
 		// //
 		// int[] latestQtr = c.getLatestQuarterly("MHK");
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
@@ -42,17 +57,14 @@ public class Console {
 				+ " minutes.");
 	}
 
-	public void loadFilingTable() {
+	public void loadFilingTable(String[] tickers) {
 
 		// populates filings table with filing type, filing dates for all tickers in the
 		// EPS table/view
 
-		Connection con = connectToDB();
 		PreparedStatement stmt = null;
 
 		int cnt = 0;
-
-		String[] tickers = getTickersFromTable("EPS");
 
 		try {
 			stmt = con.prepareStatement("REPLACE INTO SM2019.filings(tkr, ftp, fdt, ldt) VALUES (?, ?, ?, ?)");
@@ -64,8 +76,8 @@ public class Console {
 			cnt++;
 			System.out.println(cnt + " of " + tickers.length + "...(" + tkr + ")");
 			FilingSummary fs = new FilingSummary(tkr, new String[] { "esb" });
-			fs.populateFilings("10-K");
-			fs.populateFilings("10-Q");
+			fs.populateFilings("10-");
+			//fs.populateFilings("10-Q");
 			HashMap<LocalDate, String> filingDates = fs.getFilingDates();
 
 			for (Entry<LocalDate, String> entry : filingDates.entrySet()) {
@@ -91,7 +103,15 @@ public class Console {
 			}
 
 		}
+		// delete odd filings
+		try {
+			stmt = con.prepareStatement("DELETE FROM SM2019.filings WHERE ftp NOT IN ('10-K','10-K/A','10-Q','10-Q/A')");
+			stmt.executeUpdate();
 
+			System.out.println("Deleted records: " + stmt.getUpdateCount());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public void LoadAllSandP(boolean OnlyMissing) {
@@ -105,7 +125,7 @@ public class Console {
 				.collect(Collectors.toList());
 //		String[] missingTickers = sp500collection.toArray(new String[sp500collection.size()]);
 
-		c.loadQAdataInDB(diff.toArray(new String[diff.size()]));
+		c.popSecFilings(diff.toArray(new String[diff.size()]));
 		// bad is AEE
 		// last was DOV
 		// "DOW","DTE","DUK","DRE","DD","DXC","ETFC","EMN","ETN","EBAY","ECL","EIX","EW","EA","EMR","ETR","EOG","EFX","EQIX","EQR","ESS","EL","EVRG","ES","RE","EXC","EXPE","EXPD","EXR","XOM","FFIV","FB","FAST","FRT","FDX","FIS","FITB","FE","FRC","FISV","FLT","FLIR","FLS","FMC","F","FTNT","FTV","FBHS","FOXA","FOX","BEN","FCX","GPS","GRMN","IT","GD","GE","GIS","GM","GPC","GILD","GL","GPN","GS","GWW","HAL","HBI","HOG","HIG","HAS","HCA","HCP","HP","HSIC","HSY","HES","HPE","HLT","HFC","HOLX","HD","HON","HRL","HST","HPQ","HUM","HBAN","HII","IEX","IDXX","INFO","ITW","ILMN","IR","INTC","ICE","IBM","INCY","IP","IPG","IFF","INTU","ISRG","IVZ","IPGP","IQV","IRM","JKHY","JEC","JBHT","SJM","JNJ","JCI","JPM","JNPR","KSU","K","KEY","KEYS","KMB","KIM","KMI","KLAC","KSS","KHC","KR","LB","LHX","LH","LRCX","LW","LVS","LEG","LDOS","LEN","LLY","LNC","LIN","LKQ","LMT","L","LOW","LYB","MTB","MAC","M","MRO","MPC","MKTX","MAR","MMC","MLM","MAS","MA","MKC","MXIM","MCD","MCK","MDT","MRK","MET","MTD","MGM","MCHP","MU","MSFT","MAA","MHK","TAP","MDLZ","MNST","MCO","MS","MOS","MSI","MSCI","MYL","NDAQ","NOV","NTAP","NFLX","NWL","NEM","NWSA","NWS","NEE","NLSN","NKE","NI","NBL","JWN","NSC","NTRS","NOC","NCLH","NRG","NUE","NVDA","NVR","ORLY","OXY","OMC","OKE","ORCL","PCAR","PKG","PH","PAYX","PYPL","PNR","PBCT","PEP","PKI","PRGO","PFE","PM","PSX","PNW","PXD","PNC","PPG","PPL","PFG","PG","PGR","PLD","PRU","PEG","PSA","PHM","PVH","QRVO","PWR","QCOM","DGX","RL","RJF","RTN","O","REG","REGN","RF","RSG","RMD","RHI","ROK","ROL","ROP","ROST","RCL","CRM","SBAC","SLB","STX","SEE","SRE","SHW","SPG","SWKS","SLG","SNA","SO","LUV","SPGI","SWK","SBUX","STT","SYK","STI","SIVB","SYMC","SYF","SNPS","SYY","TMUS","TROW","TTWO","TPR","TGT","TEL","FTI","TFX","TXN","TXT","TMO","TIF","TWTR","TJX","TSCO","TDG","TRV","TRIP","TSN","UDR","ULTA","USB","UAA","UA","UNP","UAL","UNH","UPS","URI","UTX","UHS","UNM","VFC","VLO","VAR","VTR","VRSN","VRSK","VZ","VRTX","VIAB","V","VNO","VMC","WAB","WMT","WBA","DIS","WM","WAT","WEC","WCG","WFC","WELL","WDC","WU","WRK","WY","WHR","WMB","WLTW","WYNN","XEL","XRX","XLNX","XYL","YUM","ZBH","ZION","ZTS"});
@@ -131,7 +151,7 @@ public class Console {
 	}
 
 	public int[] getLatestQuarterly(String ticker) {
-		Connection con = connectToDB();
+
 		int maxQtr = -1;
 		int maxYr = -1;
 		ResultSet rs;
@@ -149,13 +169,10 @@ public class Console {
 
 		}
 
-		closeCommit(con);
-
 		return new int[] { maxYr, maxQtr };
 	}
 
 	public String[] getTickersFromTable(String tablename) {
-		Connection con = connectToDB();
 		ResultSet rs;
 		ArrayList<String> tkrs = new ArrayList<String>();
 
@@ -171,19 +188,15 @@ public class Console {
 			e.printStackTrace();
 		}
 
-		closeCommit(con);
-
 		return tkrs.toArray(new String[tkrs.size()]);
 	}
-	
+
 	public String[] getTickersFromQuery(String sql) {
-		Connection con = connectToDB();
 		ResultSet rs;
 		ArrayList<String> tkrs = new ArrayList<String>();
 
 		try {
-			rs = con.prepareStatement(sql + " ORDER BY 1 DESC;")
-					.executeQuery();
+			rs = con.prepareStatement(sql + " ORDER BY 1 DESC;").executeQuery();
 
 			while (rs.next()) {
 				tkrs.add(rs.getString(1));
@@ -193,13 +206,12 @@ public class Console {
 			e.printStackTrace();
 		}
 
-		closeCommit(con);
 
 		return tkrs.toArray(new String[tkrs.size()]);
 	}
 
 	public EPSdata getEPS(String ticker) {
-		Connection con = connectToDB();
+
 		ResultSet rs;
 		ArrayList<Integer> yrs = new ArrayList<Integer>();
 		ArrayList<Double> vals = new ArrayList<Double>();
@@ -220,7 +232,6 @@ public class Console {
 			System.out.println();
 		}
 
-		closeCommit(con);
 		double[] valsArray = vals.stream().mapToDouble(i -> i).toArray();
 		double[] yrsArray = yrs.stream().mapToDouble(i -> i).toArray();
 
@@ -228,7 +239,7 @@ public class Console {
 	}
 
 	public int getLatestAnnual(String ticker) {
-		Connection con = connectToDB();
+
 		int maxYr = -1;
 		ResultSet rs;
 		try {
@@ -244,13 +255,11 @@ public class Console {
 
 		}
 
-		closeCommit(con);
-
 		return maxYr;
 	}
 
 	public ArrayList<String> hasAnnualsForXyrs(String ticker, int x) {
-		Connection con = connectToDB();
+
 		int maxYr = getLatestAnnual(ticker);
 		int minYr = maxYr - x;
 		ArrayList<String> missingData = new ArrayList<String>();
@@ -275,55 +284,20 @@ public class Console {
 			}
 		}
 
-		closeCommit(con);
-
 		return missingData;
 	}
 
-//	public int[][] getXtags(String ticker){
-//		
-//	}
 
-	public void closeCommit(Connection con) {
-		try {
-			con.commit();
-			con.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
+	public void loadCompanyInfo(String[] tickers) {
 
-	public Connection connectToDB() {
-
-		Connection con = null;
-
-		try {
-			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?user=sm&password=stockmate");
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(-1);
-		}
-
-		return con;
-	}
-	
-	public void loadCompanyDescriptions() {
-
-		Connection con = connectToDB();
 		PreparedStatement stmt = null;
 
-		Console c = new Console();
 		StockList sl = new StockList();
 
 		int cnt = 0;
 
-		// if (tickers.length == 0)
-		String[] tickers = sl.getSP500();
-
 		try {
-			stmt = con.prepareStatement(
-					"INSERT IGNORE INTO SM2019.stocks(tkr, cpr) VALUES (?, ?)");
+			stmt = con.prepareStatement("INSERT IGNORE INTO SM2019.stocks(tkr, nfo) VALUES (?, ?)");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
@@ -332,20 +306,19 @@ public class Console {
 			cnt++;
 			System.out.println(cnt + " of " + tickers.length + "...(" + t + ")");
 			try {
-				stmt.setString(1,t.toUpperCase());
-				stmt.setString(2,sl.getDesc(t.toUpperCase()));
+				stmt.setString(1, t.toUpperCase());
+				stmt.setString(2, sl.getDesc(t.toUpperCase()));
 				stmt.executeUpdate();
 				TimeUnit.SECONDS.sleep(1);
 			} catch (SQLException | InterruptedException e1) {
-				//ignore
+				// ignore
 			}
-			
 
 		}
 	}
+
 	public void loadEPSCalcsInDB() {
 
-		Connection con = connectToDB();
 		PreparedStatement stmt = null;
 
 		Console c = new Console();
@@ -419,8 +392,6 @@ public class Console {
 
 		}
 
-		closeCommit(con);
-
 	}
 
 	public double[] epsPayload(int yr, EPSdata e) {
@@ -483,27 +454,10 @@ public class Console {
 		}
 	}
 
-	public void loadQAdataInDB(String[] tickers) {
-
-		Connection con = connectToDB();
-		//PreparedStatement stmt = null;
+	public void popSecFilings(String[] tickers) {
 
 		int cnt = 0;
 
-		if (tickers.length == 0) {
-//			args = new String[] { "BERY", "HOFT", "BIIB", "MHK", "WEN", "IVZ", "VLP", "MMP", "MAN", "LTC", "SBNY",
-//					"ASR", "OMAB", "PAC", "RHP", "CRI", "THO", "TROW", "EGBN", "NCLH", "MGA", "PKG", "SNA", "LABL",
-//					"PBCT", "WAL", "LUV", "OMC", "TOWN", "BLK", "TU", "SEDG", "BAP", "FB", "BJRI", "EGOV", "USAT",
-//					"MCK" };
-			tickers = new String[] { "PBCT" };
-		}
-
-//		try {
-//			stmt = con.prepareStatement(
-//					"REPLACE INTO SM2019.D(tkr, yr, prd, esb, esd, ern, shr, wsh, pft, ldt) VALUES (?, ?, ?, ?, ?)");
-//		} catch (Exception e) {
-//			System.out.println(e.getMessage());
-//		}
 		Instant start = Instant.now();
 		for (String t : tickers) {
 			cnt++;
@@ -527,90 +481,27 @@ public class Console {
 				} else {
 
 					String tkr = t.toUpperCase();
-					int yr = Integer.parseInt(v[1]);
-					int prd = Integer.parseInt(v[2]);
+					LocalDate endDate = LocalDate.parse(v[1]);
+					int periodLength = Integer.parseInt(v[2]);
 
 					// start date
 					String colName = "sdt";
-					String colData = fs.getTagData(yr, prd, "startDate");
+					String colData = fs.getTagData(endDate, periodLength, "startDate");
 					String colType = "DATE";
-					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
+					insertSecFiling(con, tkr, endDate, periodLength, colName, colData, colType);
 
 					// end date
-					colName = "edt";
-					colData = fs.getTagData(yr, prd, "endDate");
-					colType = "DATE";
-					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
-
-//					// filing date
-//					colName = "fdt";
-//					colData = fs.getTagData(yr, prd, "filingDate");
+//					colName = "edt";
+//					colData = fs.getTagData(filingDate, periodLength, "endDate");
 //					colType = "DATE";
-//					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
+//					insertSecFiling(con, tkr, filingDate, periodLength, colName, colData, colType);
 
 					// rest of array data
 					colName = v[0];
 					colData = v[3];
 					colType = "DBL";
-					insertFilingData(con, tkr, yr, prd, colName, colData, colType);
+					insertSecFiling(con, tkr, endDate, periodLength, colName, colData, colType);
 
-//						try {
-//							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
-//									.parse(fs.getTagData(yr, prd, "startDate"))).getTime());
-//							stmt = dataTblUpdate(con, "sdt");
-//							stmt.setString(1, t.toUpperCase()); // tkr
-//							stmt.setInt(2, yr); // yr
-//							stmt.setInt(3, prd); // prd
-//							stmt.setDate(4, dt); // sdt
-//							stmt.setTimestamp(5, ldt); // ldt
-//							stmt.setDate(6, dt); // sdt (if dupe key)
-//							stmt.setTimestamp(7, ldt); // (if dupe key)
-//							stmt.executeUpdate();
-//						} catch (NumberFormatException e2) {
-//							// skip update
-//							stmt.cancel();
-//						} catch (ParseException e) {
-//							// TODO Auto-generated catch block
-//							e.printStackTrace();
-//							stmt.cancel();
-//						}
-//
-//						// end date
-//						try {
-//							dt = new java.sql.Date(((java.util.Date) new SimpleDateFormat("yyyy-MM-dd")
-//									.parse(fs.getTagData(yr, prd, "endDate"))).getTime());
-//							stmt = dataTblUpdate(con, "edt");
-//							stmt.setString(1, t.toUpperCase()); // tkr
-//							stmt.setInt(2, yr); // yr
-//							stmt.setInt(3, prd); // prd
-//							stmt.setDate(4, dt); // sdt
-//							stmt.setTimestamp(5, ldt); // ldt
-//							stmt.setDate(6, dt); // sdt (if dupe key)
-//							stmt.setTimestamp(7, ldt); // (if dupe key)
-//							stmt.executeUpdate();
-//						} catch (NumberFormatException e2) {
-//							// skip update
-//							stmt.cancel();
-//						} catch (ParseException e) {
-//							// TODO Auto-generated catch block
-//							e.printStackTrace();
-//							stmt.cancel();
-//						}
-//
-//						try {
-//							stmt = dataTblUpdate(con, v[0]);
-//							stmt.setString(1, t.toUpperCase()); // tkr
-//							stmt.setInt(2, Integer.parseInt(v[1])); // yr
-//							stmt.setInt(3, Integer.parseInt(v[2])); // prd
-//							stmt.setDouble(4, Double.parseDouble(v[3])); // col
-//							stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // ldt
-//							stmt.setDouble(6, Double.parseDouble(v[3])); // col (if dupe key)
-//							stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // ldt (if dupe key)
-//							stmt.executeUpdate();
-//						} catch (NumberFormatException e2) {
-//							// skip update
-//							stmt.cancel();
-//						}
 
 				}
 
@@ -619,46 +510,49 @@ public class Console {
 			System.out.println(fs.getFilingPreview(","));
 		}
 
-		closeCommit(con);
 
 	}
 
-	private static boolean insertFilingData(Connection con, String tkr, int yr, int prd, String colName, String colData,
+	private static boolean insertSecFiling(Connection con, String tkr, LocalDate endDate, int prd, String colName, String colData,
 			String colType) {
 		PreparedStatement stmt = null;
 		Timestamp ldt = new Timestamp(System.currentTimeMillis());
 		try {
 			try {
-				stmt = con.prepareStatement("INSERT INTO SM2019.data (tkr, yr, prd, " + colName + ", ldt)"
-						+ "VALUES (?,?,?,?,?) " + "ON DUPLICATE KEY UPDATE " + colName + "=?," + "ldt=?;");
+				stmt = con.prepareStatement("INSERT INTO SM2019.secfilings (tkr, edt, prd, " + colName + ")"
+						+ "VALUES (?,?,?,?) " + "ON DUPLICATE KEY UPDATE " + colName + "=?," + "ldt=?;");
 
 				stmt.setString(1, tkr.toUpperCase()); // tkr
-				stmt.setInt(2, yr); // yr
+				//stmt.setDate(2, new java.sql.Date(endDate)); // yr
+				stmt.setObject(2, endDate);
 				stmt.setInt(3, prd); // prd
+				stmt.setObject(4, colData);
+				//
+				stmt.setObject(5, colData);
+				stmt.setTimestamp(6, ldt);
+//				if (colType.equalsIgnoreCase("DATE")) {
+//					java.sql.Date dt = new java.sql.Date(
+//							((java.util.Date) new SimpleDateFormat("yyyy-MM-dd").parse(colData)).getTime());
+//					stmt.setDate(4, dt); // col dt
+//					stmt.setDate(6, dt); // col dt (if dupe key)
+//				} else if (colType.equalsIgnoreCase("DBL")) {
+//					stmt.setDouble(4, Double.parseDouble(colData)); // dbl col
+//					stmt.setDouble(6, Double.parseDouble(colData)); // dbl col (if dupe key)
+//				} else {
+//					System.out.println("fatal error, unknown data type");
+//					System.exit(-1);
+//				}
 
-				if (colType.equalsIgnoreCase("DATE")) {
-					java.sql.Date dt = new java.sql.Date(
-							((java.util.Date) new SimpleDateFormat("yyyy-MM-dd").parse(colData)).getTime());
-					stmt.setDate(4, dt); // col dt
-					stmt.setDate(6, dt); // col dt (if dupe key)
-				} else if (colType.equalsIgnoreCase("DBL")) {
-					stmt.setDouble(4, Double.parseDouble(colData)); // dbl col
-					stmt.setDouble(6, Double.parseDouble(colData)); // dbl col (if dupe key)
-				} else {
-					System.out.println("fatal error, unknown data type");
-					System.exit(-1);
-				}
-
-				stmt.setTimestamp(5, ldt); // ldt
-				stmt.setTimestamp(7, ldt); // (if dupe key)
+//				stmt.setTimestamp(5, ldt); // ldt
+//				stmt.setTimestamp(7, ldt); // (if dupe key)
 				stmt.executeUpdate();
 			} catch (NumberFormatException e2) {
 				stmt.cancel();
 				return false;
-			} catch (ParseException e) {
-				e.printStackTrace();
-				stmt.cancel();
-				return false;
+//			} catch (ParseException e) {
+//				e.printStackTrace();
+//				stmt.cancel();
+//				return false;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

@@ -1,6 +1,7 @@
 CREATE DATABASE SM2019;
 CREATE USER 'sm' IDENTIFIED BY 'stockmate';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP ON SM2019.* TO sm@'%' IDENTIFIED BY 'stockmate';
+GRANT ALL privileges ON SM2019.* TO sm;
 \q
 mysql -usm -pstockmate SM2019
 DROP TABLE SM2019.data;
@@ -106,7 +107,7 @@ CREATE TABLE SM2019.rprices (
 #recent close prices
 	tkr varchar(5) NOT NULL,
 	cdt DATE NOT NULL,
-	cpr DECIMAL(15,4) NULL,
+	cpr DECIMAL(15,4) NOT NULL,
 	ldt DATETIME DEFAULT NOW(),
 	PRIMARY KEY (tkr, cdt)
 );
@@ -115,17 +116,35 @@ CREATE TABLE SM2019.hprices (
 #recent close prices
 	tkr varchar(5) NOT NULL,
 	mend DATE NOT NULL,
-	mhi DECIMAL(15,4) NULL,
-	mlo DECIMAL(15,4) NULL,
+	mhi DECIMAL(15,4) NOT NULL,
+	mlo DECIMAL(15,4) NOT NULL,
 	ldt DATETIME DEFAULT NOW(),
 	PRIMARY KEY (tkr, mend)
 );
 CREATE TABLE SM2019.stocks (
 #list of stocks that will be watched
 	tkr varchar(5) PRIMARY KEY,
-	cpr varchar(4000),
+	 varchar(4000),
 	ldt DATETIME DEFAULT NOW()
 );
 ALTER TABLE SM2019.data ADD COLUMN hst char(1) DEFAULT 'N' AFTER prd;
 INSERT IGNORE INTO SM2019.data (tkr,yr,prd,hst,esb,esd,ern,ldt) SELECT ticker,yr,0,'Y',eps,epsdil,netinc,loaddate FROM S.D;
 INSERT IGNORE INTO SM2019.data (tkr,yr,prd,hst,esb,esd,ern,ldt) SELECT ticker,yr,RANK() OVER (PARTITION BY ticker, yr ORDER BY mon),'Y',eps,epsdil,netinc,loaddate FROM S.Q;
+--
+DROP TABLE SM2019.secfilings;
+CREATE TABLE SM2019.secfilings ( 
+	tkr varchar(5) not null,
+	edt DATE not null,
+	prd TINYINT not null,
+	hst char(1) DEFAULT 'N',
+	esb FLOAT,
+	esd FLOAT,
+	ern FLOAT,
+	shb FLOAT,
+	shd FLOAT,
+	pft FLOAT,
+	gpf FLOAT,
+	sdt DATE,
+	ldt DATETIME DEFAULT NOW(),
+	CONSTRAINT pk_secfilings PRIMARY KEY (tkr, edt, prd) 
+);

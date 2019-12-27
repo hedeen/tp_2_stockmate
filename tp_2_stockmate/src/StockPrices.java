@@ -30,7 +30,7 @@ public class StockPrices {
 	private Connection con = null;
 	private Statement stm = null;
 	private String fileDelimiter;
-	private int waitSecs = 0;
+	private int waitMilliSecs = 0;
 
 	public static void main(String[] args) {
 
@@ -191,6 +191,134 @@ public class StockPrices {
 		System.out.println("Done");
 	}
 
+	public void updateHistoricPrices(String[] stocks) {
+
+		PreparedStatement stmt = null;
+		String ticker;
+		ArrayList<String[]> priceHistoricData = null;
+		String api = null;
+		int totalCount = 0;
+
+		for (int i = 0; i < stocks.length; i++) {
+
+			int entryCount = 0;
+			ticker = stocks[i];
+			System.out.print("Updating Historic Prices for " + ticker + " (" + (i + 1) + " of " + (stocks.length) + ")");
+
+			api = apiList[new Random().nextInt(20)];
+			System.out.print("; API call with: " + api);
+
+			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=" + ticker
+					+ "&apikey=" + api + "&datatype=csv");
+
+			System.out.print("; API calls successful");
+
+			// historic data
+			try {
+				stmt = con.prepareStatement("INSERT INTO SM2019.hprices(tkr, mend, mhi, mlo) VALUES (?, ?, ?, ?) "
+						+ "ON DUPLICATE KEY UPDATE mhi=?, mlo=?, ldt=?");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			for (int j = 2; j < Math.min(priceHistoricData.size(), 122); j++) { // 12*10yr = 120 + 2 skipped lines
+				try {
+					stmt.setString(1, ticker.toUpperCase()); // ticker
+					stmt.setDate(2, Date.valueOf((priceHistoricData.get(j)[0]))); // month end
+					stmt.setDouble(3, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
+					stmt.setDouble(4, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
+					stmt.setDouble(5, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
+					stmt.setDouble(6, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
+					stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // load date
+					stmt.executeUpdate();
+					entryCount++;
+				} catch (Exception e) {
+				}
+			}
+
+			System.out.print("; data insert complete. " + entryCount + " records inserted." + System.lineSeparator());
+			totalCount = totalCount + entryCount;
+		}
+		System.out.println("Inserted records: " + totalCount);
+
+		// delete 10yr old records
+		try {
+			stmt = con.prepareStatement("DELETE FROM SM2019.hprices WHERE mend < DATE_SUB(NOW(), INTERVAL 10 YEAR)");
+			stmt.executeUpdate();
+
+			System.out.println("Deleted records: " + stmt.getUpdateCount());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		try {
+			stmt.close();
+			con.close();
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+		System.out.println("Done");
+	}
+
+	public void updateRecentPrices(String[] stocks) {
+
+		PreparedStatement stmt = null;
+
+		String ticker;
+		ArrayList<String[]> priceRecentData = null;
+		String api = null;
+		int totalCount = 0;
+
+		for (int i = 0; i < stocks.length; i++) {
+
+			int entryCount = 0;
+			ticker = stocks[i];
+			System.out.print("Updating Recent Prices for " + ticker + " (" + (i + 1) + " of " + (stocks.length) + ")");
+
+			api = apiList[new Random().nextInt(20)];
+			System.out.print("; API call with: " + api);
+
+			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker
+					+ "&apikey=" + api + "&datatype=csv");
+
+			System.out.print("; API calls successful");
+
+			// recent data
+			try {
+				stmt = con.prepareStatement("INSERT INTO SM2019.rprices(tkr, cdt, cpr) VALUES (?, ?, ?) "
+						+ "ON DUPLICATE KEY UPDATE cpr=?, ldt=?");
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			for (int j = 1; j < priceRecentData.size(); j++) {
+				try {
+					stmt.setString(1, ticker.toUpperCase()); // ticker
+					stmt.setDate(2, Date.valueOf((priceRecentData.get(j)[0]))); // close date
+					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price
+					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price if
+																										// duped
+					stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // load date if duped
+					stmt.executeUpdate();
+					entryCount++;
+				} catch (Exception e) {
+				}
+			}
+
+			System.out.print("; data insert complete. " + entryCount + " records inserted." + System.lineSeparator());
+			totalCount = totalCount + entryCount;
+		}
+		System.out.println("Inserted records: " + totalCount);
+
+		try {
+			stmt.close();
+			con.close();
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+		System.out.println("Done");
+	}
+
 //	public static ArrayList<String[]> readData(String file) throws IOException {
 //
 //		ArrayList<String[]> content = new ArrayList<>();
@@ -216,34 +344,36 @@ public class StockPrices {
 			try {
 				String line = "";
 				while (true) {
-					
+
 					try {
-						TimeUnit.SECONDS.sleep(waitSecs);
+						TimeUnit.MILLISECONDS.sleep(waitMilliSecs); // 1 sec = 1000 millisecs
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					
+
 					u = new URL(url);
 					is = u.openStream();
 					d = new BufferedReader(new InputStreamReader(is));
 					line = d.readLine();
 
-					if (line.split(",").length < 3) {
-						waitSecs = waitSecs + 1;
+					if (waitMilliSecs > 10000) {
+						System.out.print("[skipped]");
+						waitMilliSecs = 0;
+						break;
+					} else if (line.split(",").length < 3) {
+						waitMilliSecs = waitMilliSecs + 1000;
 						System.out.print("+");
 					} else {
+						System.out.print("[" + waitMilliSecs / 1000 + "]");
+						waitMilliSecs = waitMilliSecs - 250;
 						break;
 					}
-
 				}
-				
-				System.out.print("["+waitSecs+"]");
-				waitSecs = waitSecs-1;
-				
+
 				while ((line = d.readLine()) != null) {
 					content.add(line.split(","));
 				}
-			}catch (MalformedURLException mue) {
+			} catch (MalformedURLException mue) {
 				System.err.println("Ouch - a MalformedURLException happened.");
 				mue.printStackTrace();
 				System.exit(2);

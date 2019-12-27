@@ -1,3 +1,5 @@
+import java.time.LocalDate;
+
 public class FilingMap {
 
 	private NestedMap<String, String> m = new NestedMap<>();
@@ -14,8 +16,6 @@ public class FilingMap {
 		if (!this.m.hasChild(yr)) {
 			this.m.makeChild(yr);
 			this.m.getChild(yr).makeChild(prd);
-			//this.m.getChild(yr).getChild(prd).makeChild(tag);
-			//this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
 			this.m.getChild(yr).getChild(prd).setValues(key, val);
 			this.rows++;
 
@@ -30,25 +30,20 @@ public class FilingMap {
 		} else if (!this.m.getChild(yr).hasChild(prd)) {
 			this.m.getChild(yr).makeChild(prd);
 			this.m.getChild(yr).getChild(prd).setValues(key, val);
-			//this.m.getChild(yr).getChild(prd).makeChild(tag);
-			//this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
 			this.rows++;
 		} else if (!this.m.getChild(yr).getChild(prd).hasChilds(key)) {
 			this.m.getChild(yr).getChild(prd).setValues(key, val);
-			//this.m.getChild(yr).getChild(prd).makeChild(tag);
-			//this.m.getChild(yr).getChild(prd).getChild(tag).setValue(val);
 			this.rows++;
 		}
 
 	}
-
+	
 	public String get(int year, int period, String key) {
 		String yr = String.valueOf(year);
 		String prd = String.valueOf(period);
 		String val;
 
 		try {
-			//val = this.m.getChild(yr).getChild(prd).getChild(tag).getValue();
 			val = this.m.getChild(yr).getChild(prd).getValues(key);
 		} catch (NullPointerException e) {
 			// value not found
@@ -79,7 +74,6 @@ public class FilingMap {
 		boolean hasData = false;
 
 		try {
-			//hasData = this.m.getChild(yr).getChild(prd).hasChild(tag);
 			hasData = this.m.getChild(yr).getChild(prd).hasChilds(key);
 		} catch (NullPointerException e) {
 			// value not found, already false

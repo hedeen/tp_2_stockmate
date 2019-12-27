@@ -16,7 +16,7 @@ import org.jsoup.select.Elements;
 public class FilingSummary {
 
 	protected ArrayList<FilingLocator> filings = new ArrayList<FilingLocator>();
-	protected FilingMap filingMap = new FilingMap();
+	protected FilingContainer fc = new FilingContainer();
 	protected FilingTag filingTag = new FilingTag();
 	protected String[] tags;
 	protected String ticker;
@@ -39,21 +39,19 @@ public class FilingSummary {
 
 		// populateFilings("10-");
 	}
-	
-	public HashMap<LocalDate, String> getFilingDates(){
-		
-		//ArrayList<LocalDate> filingDates = new ArrayList<LocalDate>();
-		
-		HashMap<LocalDate, String> filingDates= new HashMap<LocalDate,String>();
-		
+
+	public HashMap<LocalDate, String> getFilingDates() {
+
+		// ArrayList<LocalDate> filingDates = new ArrayList<LocalDate>();
+
+		HashMap<LocalDate, String> filingDates = new HashMap<LocalDate, String>();
+
 		for (FilingLocator d : this.filings) {
 			filingDates.put(d.getFilingDate(), d.getFilingType());
 		}
-		
+
 		return filingDates;
 	}
-
-
 
 	public void bufferAllFilings() {
 
@@ -65,7 +63,7 @@ public class FilingSummary {
 		populateFilings("10-Q");
 		populateFilingData(999);
 		// load only the 12 most recent quarters (3 years)
-		//populateFilingData(12);
+		// populateFilingData(12);
 	}
 
 	public void setTag(String tag) {
@@ -75,7 +73,7 @@ public class FilingSummary {
 		this.tags = tmp;
 
 		// clear the map if we are changing the tags
-		this.filingMap = new FilingMap();
+		this.fc = new FilingContainer();
 	}
 
 	public void bufferMostRecentFiling() {
@@ -90,47 +88,54 @@ public class FilingSummary {
 	public ArrayList<String[]> getTagArray() {
 
 		ArrayList<String[]> rtn = new ArrayList<String[]>();
+		ArrayList<LocalDate> filingDates = this.fc.getFilingDates();
 
-		for (int yr = this.filingMap.getMaxYear(); yr >= this.filingMap.getMinYear(); yr--) {
-			for (int prd = 4; prd >= 0; prd--) {
-				if (this.filingMap.hasPeriodData(yr, prd)) {
-					for (int i = 0; i < this.tags.length; i++) {
-						String tag = this.tags[i];
-						String[] row = new String[] { tag, String.valueOf(yr), String.valueOf(prd),	this.filingMap.get(yr, prd, tag) };
-						rtn.add(row);
-					}
+		for (LocalDate fd: filingDates) {
+			if (this.fc.hasPeriodData(fd, 3)) {
+				for (int i = 0; i < this.tags.length; i++) {
+					String tag = this.tags[i];
+					String[] row = new String[] { tag, String.valueOf(fd), String.valueOf(3),	this.fc.get(fd, 3, tag) };
+					rtn.add(row);
+				}
+			}
+			if (this.fc.hasPeriodData(fd, 12)) {
+				for (int i = 0; i < this.tags.length; i++) {
+					String tag = this.tags[i];
+					String[] row = new String[] { tag, String.valueOf(fd), String.valueOf(12),	this.fc.get(fd, 12, tag) };
+					rtn.add(row);
 				}
 			}
 		}
+			
 
 		return rtn;
 	}
 
-	public String getTagData(int year, int period, String tag) {
+	public String getTagData(LocalDate periodEnd, int periodLength, String tag) {
 
-		if (this.filingMap.hasData(year, period, tag)) {
-			return this.filingMap.get(year, period, tag);
+		if (this.fc.hasData(periodEnd, periodLength, tag)) {
+			return this.fc.get(periodEnd, periodLength, tag);
 		} else {
 			return null;
 		}
 
 	}
 
-	public String[] getMostRecentFilingData(String tag) {
-
-		int yr = this.filingMap.getMaxYear();
-		String[] filingData = null;
-
-		for (int prd = 4; prd >= 0; prd--) {
-			if (this.filingMap.hasData(yr, prd, tag)) {
-				filingData = new String[] { String.valueOf(yr), String.valueOf(prd), this.filingMap.get(yr, prd, tag) };
-				return filingData;
-			}
-		}
-
-		return null;
-
-	}
+//	public String[] getMostRecentFilingData(String tag) {
+//
+//		int yr = this.fc.getMaxYear();
+//		String[] filingData = null;
+//
+//		for (int prd = 4; prd >= 0; prd--) {
+//			if (this.fc.hasData(yr, prd, tag)) {
+//				filingData = new String[] { String.valueOf(yr), String.valueOf(prd), this.fc.get(yr, prd, tag) };
+//				return filingData;
+//			}
+//		}
+//
+//		return null;
+//
+//	}
 
 	// Returns a string representing the filing data preview
 	public String getFilingPreview(String delimiter) {
@@ -138,34 +143,44 @@ public class FilingSummary {
 
 		String output = null;
 		String newline = System.lineSeparator();
+		ArrayList<LocalDate> filingDates = this.fc.getFilingDates();
 
-		if (filingMap.getRows() == 0) {
+		if (fc.getRows() == 0) {
 			return null;
 		}
 
 		String delim = delimiter;
 
 		// output = ("Filing Data for " + this.ticker) + newline;
-		output = "year" + delim + "period" + delim + "startDate" + delim + "endDate";
+		output = "endDate" + delim + "period"; // + delim + "startDate" + delim + "endDate";
 		for (String tag : this.tags) {
 			output = output + (delim + tag);
 		}
 		output = output + newline;
 
 		String buffer = "";
-		for (int yr = this.filingMap.getMaxYear(); yr >= this.filingMap.getMinYear(); yr--) {
-			for (int prd = 4; prd >= 0; prd--) {
-				if (this.filingMap.hasPeriodData(yr, prd)) {
-					for (int i = 0; i < this.tags.length - 1; i++) {
-						String tag = this.tags[i];
-						buffer = buffer + this.filingMap.get(yr, prd, tag) + delim;
-					}
-					buffer = buffer + this.filingMap.get(yr, prd, this.tags[this.tags.length - 1]);
-					output = output + (yr + delim + prd + delim + this.filingMap.get(yr, prd, "startDate") + delim
-							+ this.filingMap.get(yr, prd, "endDate") + delim + buffer) + newline;
+		for (LocalDate fd: filingDates) {
+			
+			//annual
+			if (this.fc.hasPeriodData(fd, 12)) {
+				for (int i = 0; i < this.tags.length - 1; i++) {
+					String tag = this.tags[i];
+					buffer = buffer + this.fc.get(fd, 12, tag) + delim;
 				}
-				buffer = "";
+				buffer = buffer + this.fc.get(fd, 12, this.tags[this.tags.length - 1]);
+				output = output + (fd + delim + 12 + delim + buffer) + newline;
 			}
+			
+			//quarterly
+			if (this.fc.hasPeriodData(fd, 3)) {
+				for (int i = 0; i < this.tags.length - 1; i++) {
+					String tag = this.tags[i];
+					buffer = buffer + this.fc.get(fd, 3, tag) + delim;
+				}
+				buffer = buffer + this.fc.get(fd, 3, this.tags[this.tags.length - 1]);
+				output = output + (fd + delim + 3 + delim + buffer) + newline;
+			}
+			buffer = "";
 		}
 
 		// Save the last filing preview so we can access it without needing to requery
@@ -286,7 +301,8 @@ public class FilingSummary {
 		return null;
 	}
 
-	protected LocalDate getContextDate(Element doc, String contextref, String dateType) throws NullPointerException,DateTimeParseException {
+	protected LocalDate getContextDate(Element doc, String contextref, String dateType)
+			throws NullPointerException, DateTimeParseException {
 		// this returns a date for a given element list with a given context for a
 		// specific tag
 		String dateString;
@@ -407,13 +423,14 @@ public class FilingSummary {
 									int periodScope = getPeriodScope(doc, endDate, months);
 									int periodYear = getPeriodYear(doc, endDate);
 									if (periodScope != -1 && periodYear != -1) {
-										this.filingMap.put(periodYear, periodScope, tag, e.text());
-										this.filingMap.put(periodYear, periodScope, "endDate", endDate.toString());
-										this.filingMap.put(periodYear, periodScope, "startDate", startDate.toString());
-										this.filingMap.put(periodYear, periodScope, "filingDate", d.getFilingDate().toString());
+										this.fc.put(endDate, months, tag, e.text());
+										this.fc.put(endDate, months, "endDate", endDate.toString());
+										this.fc.put(endDate, months, "startDate", startDate.toString());
+										this.fc.put(endDate, months, "filingDate",
+												d.getFilingDate().toString());
 									}
 								} catch (Exception e1) {
-									//e1.printStackTrace();
+									// e1.printStackTrace();
 									// ignore record
 
 								}
