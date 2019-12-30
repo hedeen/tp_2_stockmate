@@ -356,7 +356,7 @@ public class StockPrices {
 					d = new BufferedReader(new InputStreamReader(is));
 					line = d.readLine();
 
-					if (waitMilliSecs > 10000) {
+					if (waitMilliSecs > 20000) {
 						System.out.print("[skipped]");
 						waitMilliSecs = 0;
 						break;
@@ -374,13 +374,10 @@ public class StockPrices {
 					content.add(line.split(","));
 				}
 			} catch (MalformedURLException mue) {
-				System.err.println("Ouch - a MalformedURLException happened.");
-				mue.printStackTrace();
-				System.exit(2);
+				System.err.println("- a MalformedURLException happened.");
+
 			} catch (IOException ioe) {
-				System.err.println("Oops- an IOException happened.");
-				ioe.printStackTrace();
-				System.exit(3);
+				System.err.println("- an IOException happened.");
 			}
 
 			finally {
