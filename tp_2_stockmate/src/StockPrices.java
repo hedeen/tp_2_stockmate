@@ -1,11 +1,6 @@
-
-//import java.io.BufferedInputStream;
-//import java.io.DataInputStream;
-//import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Connection;
@@ -13,7 +8,6 @@ import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Random;
@@ -28,7 +22,7 @@ public class StockPrices {
 			"EYW9JROENT30B8ON", "RTFY5W8YVE6DAF2O", "KREGHQ3FRYT09H4S", "SLN3EW4L0UXQ38F5", "DAB7RANDIUK2SSCX",
 			"OW5A8ZQZSVBHJG5L" };
 	private Connection con = null;
-	private Statement stm = null;
+	//private Statement stm = null;
 	private String fileDelimiter;
 	private int waitMilliSecs = 0;
 
@@ -46,7 +40,7 @@ public class StockPrices {
 			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?autoReconnect=true&useSSL=false",
 					"sm", "stockmate");
 
-			stm = con.createStatement();
+			//stm = con.createStatement();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			System.exit(0);

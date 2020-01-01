@@ -33,4 +33,8 @@ public class FilingLocator {
 	public String getFilingType() {
 		return this.filingType;
 	}
+
+	public String getFilingPageUrl() {
+		return filingPageUrl;
+	}
 }

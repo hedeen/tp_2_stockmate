@@ -31,38 +31,47 @@ public class Console {
 
 	public static void main(String[] args) {
 		Instant start = Instant.now();
-		String help = "Argument help: " + System.lineSeparator() + "a\t update all" + System.lineSeparator()
-				+ "p\t update all prices" + System.lineSeparator() + "rp\t update only recent price changes"
-				+ System.lineSeparator() + "sm\t update current stockmate picks" + System.lineSeparator()
+		String help = "Argument help: " + System.lineSeparator() + "-a\t update all" + System.lineSeparator()
+				+ "-p\t update most recent filing and recent/historic prices" + System.lineSeparator()
+				+ "-smp\t update most recent filings and prices for best stockmate picks" + System.lineSeparator()
+				+ "-sma\t update all filings and prices for best stockmate picks" + System.lineSeparator()
 				+ "+\t new list of stock to insert into tracking seperated by commas IE stockmate.jar +HOFT,MHK,USAT"
 				+ System.lineSeparator();
+
 		if (args.length == 1) {
 			Console c = new Console();
 			StockPrices sp = new StockPrices();
 
 			switch (args[0]) {
-			case "a": {
-				c.popSecFilings(c.getTickersFromTable("stocks"));
+			case "-a": {
+				// update all filings and prices
+				c.popSecFilings(c.getTickersFromTable("stocks"), true);
 				sp.updatePrices(c.getTickersFromTable("stocks"));
 				break;
 			}
-			case "p": {
+			case "-p": {
+				// update most recent filings for everyone, update all prices
+				c.popSecFilings(c.getTickersFromTable("stocks"), false);
 				sp.updatePrices(c.getTickersFromTable("stocks"));
 				break;
 			}
-			case "rp": {
-				sp.updateRecentPrices(c.getTickersFromTable("stocks"));
+			case "-smp": {
+				// update most recent filings and prices for stockmate picks
+				c.popSecFilings(c.getTickersFromTable("top_picks_v"), false);
+				sp.updateRecentPrices(c.getTickersFromTable("top_picks_v"));
 				break;
 			}
-			case "sm": {
-				c.popSecFilings(c.getTickersFromQuery("SELECT tkr FROM forecast_mv"));
-				sp.updatePrices(c.getTickersFromQuery("SELECT tkr FROM forecast_mv"));
+			case "-sma": {
+				// update all filings and prices for best stockmate picks
+				c.popSecFilings(c.getTickersFromTable("top_picks_v"), true);
+				sp.updatePrices(c.getTickersFromTable("top_picks_v"));
 				break;
 			}
+
 			default:
 				if (args[0].startsWith("+")) {
 					c.loadCompanyInfo(args[0].replace("+", "").split(","));
-					c.popSecFilings(args[0].replace("+", "").split(","));
+					c.popSecFilings(args[0].replace("+", "").split(","), true);
 					sp.updatePrices(args[0].replace("+", "").split(","));
 					break;
 				} else {
@@ -110,7 +119,7 @@ public class Console {
 	public void loadFilingTable(String[] tickers) {
 		// populates filings table with filing type, filing dates for all tickers in the
 		// EPS table/view
-		
+
 		PreparedStatement stmt = null;
 		int cnt = 0;
 		try {
@@ -302,6 +311,8 @@ public class Console {
 		Console c = new Console();
 		int cnt = 0;
 		try {
+			PreparedStatement ps = con.prepareStatement("delete from SM2019.calcs");
+			ps.executeUpdate();
 			stmt = this.con.prepareStatement(
 					"REPLACE INTO SM2019.calcs(tkr, r3, m3, b3, r5, m5, b5, r9, m9, b9, r10, m10, b10, cdt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 		} catch (Exception e) {
@@ -418,7 +429,7 @@ public class Console {
 		return null;
 	}
 
-	public void popSecFilings(String[] tickers) {
+	public void popSecFilings(String[] tickers, boolean allFilings) {
 		int cnt = 0;
 		Instant start = Instant.now();
 		for (String t : tickers) {
@@ -430,7 +441,12 @@ public class Console {
 				System.out.println(String.valueOf(cnt) + " of " + tickers.length + "...(" + t + ")");
 			}
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
-			fs.bufferAllFilings();
+			if (allFilings) {
+				fs.bufferAllFilings();
+			} else {
+				fs.bufferMostRecentFiling();
+			}
+
 			for (String[] v : fs.getTagArray()) {
 				if (v[0] != null && v[1] != null && v[2] != null && v[3] != null) {
 					String tkr = t.toUpperCase();
