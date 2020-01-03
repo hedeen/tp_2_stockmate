@@ -35,7 +35,7 @@ public class Console {
 				+ "-p\t update most recent filing and recent/historic prices" + System.lineSeparator()
 				+ "-smp\t update most recent filings and prices for best stockmate picks" + System.lineSeparator()
 				+ "-sma\t update all filings and prices for best stockmate picks" + System.lineSeparator()
-				+ "+\t new list of stock to insert into tracking seperated by commas IE stockmate.jar +HOFT,MHK,USAT"
+				+ "+\t list of stocks to add to tracking, seperated by commas IE stockmate.jar +HOFT,MHK,USAT"
 				+ System.lineSeparator();
 
 		if (args.length == 1) {

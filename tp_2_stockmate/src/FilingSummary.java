@@ -318,12 +318,8 @@ public class FilingSummary
                             LocalDate startDate = this.getContextDate((Element)doc, contextref, "startDate");
                             LocalDate endDate = this.getContextDate((Element)doc, contextref, "endDate");
                             int months = this.getMonths(startDate, endDate);
-                            int periodScope = this.getPeriodScope((Element)doc, endDate, months);
-                            int periodYear = this.getPeriodYear((Element)doc, endDate);
-                            if (periodScope == -1 || periodYear == -1) {
-                                continue;
-                            }
-                            this.fc.put(endDate, months, tag, e.text());
+                            String val = e.text();
+                            this.fc.put(endDate, months, tag, val);
                             this.fc.put(endDate, months, "endDate", endDate.toString());
                             this.fc.put(endDate, months, "startDate", startDate.toString());
                             this.fc.put(endDate, months, "filingDate", d.getFilingDate().toString());
