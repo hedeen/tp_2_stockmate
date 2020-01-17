@@ -30,7 +30,7 @@ public class StockPrices {
 
 		StockPrices sp = new StockPrices();
 
-		sp.updatePrices(new String[] { "HOFT" });
+		sp.updatePrices(new String[] { "ULTA" });
 
 	}
 
@@ -108,12 +108,12 @@ public class StockPrices {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceRecentData.get(j)[0]))); // close date
 					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price
-					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price if
-																										// duped
+					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close pr if duped
 					stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // load date if duped
 					stmt.executeUpdate();
 					entryCount++;
 				} catch (Exception e) {
+					System.out.print("ERROR " + e.getMessage());
 				}
 			}
 
@@ -125,10 +125,10 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 2; j < Math.min(priceHistoricData.size(), 122); j++) { // 12*10yr = 120 + 2 skipped lines
-				double high = Double.parseDouble(priceHistoricData.get(j)[2]);
-				double low = Double.parseDouble(priceHistoricData.get(j)[3]);
-				double close = Double.parseDouble(priceHistoricData.get(j)[4]);
-				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5]);
+				double high = Double.parseDouble(priceHistoricData.get(j)[2].replace(",", ""));
+				double low = Double.parseDouble(priceHistoricData.get(j)[3].replace(",", ""));
+				double close = Double.parseDouble(priceHistoricData.get(j)[4].replace(",", ""));
+				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5].replace(",", ""));
 				double adj_high = adj_close / close * high;
 				double adj_low = adj_close / close * low;
 
@@ -143,6 +143,7 @@ public class StockPrices {
 					stmt.executeUpdate();
 					entryCount++;
 				} catch (Exception e) {
+					System.out.print("ERROR " + e.getMessage());
 				}
 			}
 
@@ -202,10 +203,10 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 2; j < Math.min(priceHistoricData.size(), 122); j++) { // 12*10yr = 120 + 2 skipped lines
-				double high = Double.parseDouble(priceHistoricData.get(j)[2]);
-				double low = Double.parseDouble(priceHistoricData.get(j)[3]);
-				double close = Double.parseDouble(priceHistoricData.get(j)[4]);
-				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5]);
+				double high = Double.parseDouble(priceHistoricData.get(j)[2].replace(",", ""));
+				double low = Double.parseDouble(priceHistoricData.get(j)[3].replace(",", ""));
+				double close = Double.parseDouble(priceHistoricData.get(j)[4].replace(",", ""));
+				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5].replace(",", ""));
 				double adj_high = adj_close / close * high;
 				double adj_low = adj_close / close * low;
 
@@ -220,6 +221,7 @@ public class StockPrices {
 					stmt.executeUpdate();
 					entryCount++;
 				} catch (Exception e) {
+					System.out.print("ERROR " + e.getMessage());
 				}
 			}
 
@@ -290,6 +292,7 @@ public class StockPrices {
 					stmt.executeUpdate();
 					entryCount++;
 				} catch (Exception e) {
+					System.out.print("ERROR " + e.getMessage());
 				}
 			}
 
