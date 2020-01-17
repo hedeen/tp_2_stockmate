@@ -22,7 +22,7 @@ public class StockPrices {
 			"EYW9JROENT30B8ON", "RTFY5W8YVE6DAF2O", "KREGHQ3FRYT09H4S", "SLN3EW4L0UXQ38F5", "DAB7RANDIUK2SSCX",
 			"OW5A8ZQZSVBHJG5L" };
 	private Connection con = null;
-	//private Statement stm = null;
+	// private Statement stm = null;
 	private String fileDelimiter;
 	private int waitMilliSecs = 0;
 
@@ -40,7 +40,7 @@ public class StockPrices {
 			con = DriverManager.getConnection("jdbc:mariadb://localhost:3306/SM2019?autoReconnect=true&useSSL=false",
 					"sm", "stockmate");
 
-			//stm = con.createStatement();
+			// stm = con.createStatement();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			System.exit(0);
@@ -78,23 +78,22 @@ public class StockPrices {
 
 //			try {
 
-			if (fileDelimiter.equals("/")) {
-				// linux
-				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
-						+ "&apikey=" + api + "&datatype=csv");
-				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
-						+ ticker + "&apikey=" + api + "&datatype=csv");
+//			if (fileDelimiter.equals("/")) {
+//				// linux
+			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="
+					+ ticker + "&apikey=" + api + "&datatype=csv");
+			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
+					+ ticker + "&apikey=" + api + "&datatype=csv");
 
-			} else {
-				// windows
-				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
-						+ "&apikey=" + api + "&datatype=csv");
-				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
-						+ ticker + "&apikey=" + api + "&datatype=csv");
-			}
+//			} else {
+//				// windows
+//				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
+//						+ "&apikey=" + api + "&datatype=csv");
+//				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
+//						+ ticker + "&apikey=" + api + "&datatype=csv");
+//			}
 
 			System.out.print("; API calls successful");
-
 
 			// recent data
 			try {
@@ -104,11 +103,12 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 1; j < priceRecentData.size(); j++) {
+
 				try {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceRecentData.get(j)[0]))); // close date
-					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price
-					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price if
+					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price
+					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price if
 																										// duped
 					stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // load date if duped
 					stmt.executeUpdate();
@@ -125,13 +125,20 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 2; j < Math.min(priceHistoricData.size(), 122); j++) { // 12*10yr = 120 + 2 skipped lines
+				double high = Double.parseDouble(priceHistoricData.get(j)[2]);
+				double low = Double.parseDouble(priceHistoricData.get(j)[3]);
+				double close = Double.parseDouble(priceHistoricData.get(j)[4]);
+				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5]);
+				double adj_high = adj_close / close * high;
+				double adj_low = adj_close / close * low;
+
 				try {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceHistoricData.get(j)[0]))); // month end
-					stmt.setDouble(3, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
-					stmt.setDouble(4, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
-					stmt.setDouble(5, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
-					stmt.setDouble(6, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
+					stmt.setDouble(3, adj_high); // month high
+					stmt.setDouble(4, adj_low); // month low
+					stmt.setDouble(5, adj_high); // month high
+					stmt.setDouble(6, adj_low); // month low
 					stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // load date
 					stmt.executeUpdate();
 					entryCount++;
@@ -176,13 +183,14 @@ public class StockPrices {
 
 			int entryCount = 0;
 			ticker = stocks[i];
-			System.out.print("Updating Historic Prices for " + ticker + " (" + (i + 1) + " of " + (stocks.length) + ")");
+			System.out
+					.print("Updating Historic Prices for " + ticker + " (" + (i + 1) + " of " + (stocks.length) + ")");
 
 			api = apiList[new Random().nextInt(20)];
 			System.out.print("; API call with: " + api);
 
-			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=" + ticker
-					+ "&apikey=" + api + "&datatype=csv");
+			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
+					+ ticker + "&apikey=" + api + "&datatype=csv");
 
 			System.out.print("; API calls successful");
 
@@ -194,13 +202,20 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 2; j < Math.min(priceHistoricData.size(), 122); j++) { // 12*10yr = 120 + 2 skipped lines
+				double high = Double.parseDouble(priceHistoricData.get(j)[2]);
+				double low = Double.parseDouble(priceHistoricData.get(j)[3]);
+				double close = Double.parseDouble(priceHistoricData.get(j)[4]);
+				double adj_close = Double.parseDouble(priceHistoricData.get(j)[5]);
+				double adj_high = adj_close / close * high;
+				double adj_low = adj_close / close * low;
+
 				try {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceHistoricData.get(j)[0]))); // month end
-					stmt.setDouble(3, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
-					stmt.setDouble(4, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
-					stmt.setDouble(5, Double.parseDouble(priceHistoricData.get(j)[2])); // month high
-					stmt.setDouble(6, Double.parseDouble(priceHistoricData.get(j)[3])); // month low
+					stmt.setDouble(3, adj_high); // month high
+					stmt.setDouble(4, adj_low); // month low
+					stmt.setDouble(5, adj_high); // month high
+					stmt.setDouble(6, adj_low); // month low
 					stmt.setTimestamp(7, new Timestamp(System.currentTimeMillis())); // load date
 					stmt.executeUpdate();
 					entryCount++;
@@ -251,8 +266,8 @@ public class StockPrices {
 			api = apiList[new Random().nextInt(20)];
 			System.out.print("; API call with: " + api);
 
-			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
-					+ "&apikey=" + api + "&datatype=csv");
+			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="
+					+ ticker + "&apikey=" + api + "&datatype=csv");
 
 			System.out.print("; API calls successful");
 
@@ -264,11 +279,12 @@ public class StockPrices {
 				e.printStackTrace();
 			}
 			for (int j = 1; j < priceRecentData.size(); j++) {
+
 				try {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceRecentData.get(j)[0]))); // close date
-					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price
-					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[4].replace(",", ""))); // close price if
+					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price
+					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price if
 																										// duped
 					stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // load date if duped
 					stmt.executeUpdate();
@@ -291,7 +307,6 @@ public class StockPrices {
 		}
 		System.out.println("Done");
 	}
-
 
 	private ArrayList<String[]> jget(String url) {
 		{
