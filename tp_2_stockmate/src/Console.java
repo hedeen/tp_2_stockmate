@@ -109,7 +109,7 @@ public class Console {
 	public void updateForecastMV() {
 		try {
 			System.out.print("Refreshing forecast_mv...");
-			CallableStatement cs = this.con.prepareCall("{call refresh_forecast_mv}");
+			CallableStatement cs = this.con.prepareCall("{call refresh_mvs}");
 			cs.executeQuery();
 			System.out.println("success!");
 		} catch (SQLException ex) {
@@ -165,22 +165,22 @@ public class Console {
 		}
 	}
 
-	public int[] getLatestQuarterly(String ticker) {
-		int maxQtr = -1;
-		int maxYr = -1;
-		try {
-			ResultSet rs = this.con.prepareStatement(
-					"SELECT MAX(D.prd), MAX(D.yr) FROM SM2019.DATA JOIN (SELECT MAX(yr) mYr FROM SM2019.DATA WHERE prd > 0 AND tkr='"
-							+ ticker + "') M ON M.mYr = D.yr;")
-					.executeQuery();
-			if (rs.next()) {
-				maxQtr = rs.getInt(1);
-				maxYr = rs.getInt(2);
-			}
-		} catch (SQLException ex) {
-		}
-		return new int[] { maxYr, maxQtr };
-	}
+//	public int[] getLatestQuarterly(String ticker) {
+//		int maxQtr = -1;
+//		int maxYr = -1;
+//		try {
+//			ResultSet rs = this.con.prepareStatement(
+//					"SELECT MAX(D.prd), MAX(D.yr) FROM SM2019.DATA JOIN (SELECT MAX(yr) mYr FROM SM2019.DATA WHERE prd > 0 AND tkr='"
+//							+ ticker + "') M ON M.mYr = D.yr;")
+//					.executeQuery();
+//			if (rs.next()) {
+//				maxQtr = rs.getInt(1);
+//				maxYr = rs.getInt(2);
+//			}
+//		} catch (SQLException ex) {
+//		}
+//		return new int[] { maxYr, maxQtr };
+//	}
 
 	public String[] getTickersFromTable(String tablename) {
 		ArrayList<String> tkrs = new ArrayList<String>();

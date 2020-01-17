@@ -57,11 +57,6 @@ public class StockPrices {
 	public void updatePrices(String[] stocks) {
 
 		PreparedStatement stmt = null;
-//		String recentLoc = System.getProperty("user.home") + fileDelimiter + "Public" + fileDelimiter
-//				+ "recentPrices.csv";
-//		String historicLoc = System.getProperty("user.home") + fileDelimiter + "Public" + fileDelimiter
-//				+ "historicPrices.csv";
-
 		String ticker;
 		ArrayList<String[]> priceRecentData = null;
 		ArrayList<String[]> priceHistoricData = null;
@@ -85,37 +80,21 @@ public class StockPrices {
 
 			if (fileDelimiter.equals("/")) {
 				// linux
-//					p = r.exec(new String[] { "/bin/sh", "-c",
-//							"wget \"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker
-//									+ "&apikey=" + api + "&datatype=csv\" -O " + recentLoc });
-//					p.waitFor();
-//					priceRecentData = StockPrices.readData(recentLoc);
-//
-//					p = r.exec(new String[] { "/bin/sh", "-c",
-//							"wget \"https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=" + ticker
-//									+ "&apikey=" + api + "&datatype=csv\" -O " + historicLoc });
-//					p.waitFor();
-//					priceHistoricData = StockPrices.readData(historicLoc);
-
-				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker
+				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
 						+ "&apikey=" + api + "&datatype=csv");
-				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol="
+				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
 						+ ticker + "&apikey=" + api + "&datatype=csv");
 
 			} else {
 				// windows
-				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker
+				priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
 						+ "&apikey=" + api + "&datatype=csv");
-				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol="
+				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
 						+ ticker + "&apikey=" + api + "&datatype=csv");
 			}
 
 			System.out.print("; API calls successful");
-//			} catch (IOException | InterruptedException e) {
-//
-//				e.printStackTrace();
-//				System.exit(-1);
-//			}
+
 
 			// recent data
 			try {
@@ -166,14 +145,14 @@ public class StockPrices {
 		System.out.println("Inserted records: " + totalCount);
 
 		// delete 10yr old records
-		try {
-			stmt = con.prepareStatement("DELETE FROM SM2019.hprices WHERE mend < DATE_SUB(NOW(), INTERVAL 10 YEAR)");
-			stmt.executeUpdate();
-
-			System.out.println("Deleted records: " + stmt.getUpdateCount());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		try {
+//			stmt = con.prepareStatement("DELETE FROM SM2019.hprices WHERE mend < DATE_SUB(NOW(), INTERVAL 10 YEAR)");
+//			stmt.executeUpdate();
+//
+//			System.out.println("Deleted records: " + stmt.getUpdateCount());
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
 		try {
 			stmt.close();
@@ -202,7 +181,7 @@ public class StockPrices {
 			api = apiList[new Random().nextInt(20)];
 			System.out.print("; API call with: " + api);
 
-			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=" + ticker
+			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol=" + ticker
 					+ "&apikey=" + api + "&datatype=csv");
 
 			System.out.print("; API calls successful");
@@ -235,14 +214,14 @@ public class StockPrices {
 		System.out.println("Inserted records: " + totalCount);
 
 		// delete 10yr old records
-		try {
-			stmt = con.prepareStatement("DELETE FROM SM2019.hprices WHERE mend < DATE_SUB(NOW(), INTERVAL 10 YEAR)");
-			stmt.executeUpdate();
-
-			System.out.println("Deleted records: " + stmt.getUpdateCount());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		try {
+//			stmt = con.prepareStatement("DELETE FROM SM2019.hprices WHERE mend < DATE_SUB(NOW(), INTERVAL 10 YEAR)");
+//			stmt.executeUpdate();
+//
+//			System.out.println("Deleted records: " + stmt.getUpdateCount());
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
 		try {
 			stmt.close();
@@ -272,7 +251,7 @@ public class StockPrices {
 			api = apiList[new Random().nextInt(20)];
 			System.out.print("; API call with: " + api);
 
-			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=" + ticker
+			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=" + ticker
 					+ "&apikey=" + api + "&datatype=csv");
 
 			System.out.print("; API calls successful");
@@ -313,19 +292,6 @@ public class StockPrices {
 		System.out.println("Done");
 	}
 
-//	public static ArrayList<String[]> readData(String file) throws IOException {
-//
-//		ArrayList<String[]> content = new ArrayList<>();
-//		try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-//			String line = "";
-//			while ((line = br.readLine()) != null) {
-//				content.add(line.split(","));
-//			}
-//		} catch (Exception e) {
-//
-//		}
-//		return content;
-//	}
 
 	private ArrayList<String[]> jget(String url) {
 		{

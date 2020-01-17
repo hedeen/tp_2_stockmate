@@ -24,7 +24,7 @@ public class FilingSummary
     private String filingPreviewCache;
     
     public static void main(String[] args) {
-        FilingSummary fs = new FilingSummary("HOFT", new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
+        FilingSummary fs = new FilingSummary("DIS", new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
         fs.bufferAllFilings();
         System.out.println(fs.getFilingPreview("\t"));
     }
