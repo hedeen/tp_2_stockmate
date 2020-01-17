@@ -23,7 +23,7 @@ public class StockPrices {
 			"OW5A8ZQZSVBHJG5L" };
 	private Connection con = null;
 	// private Statement stm = null;
-	private String fileDelimiter;
+//	private String fileDelimiter;
 	private int waitMilliSecs = 0;
 
 	public static void main(String[] args) {
@@ -46,11 +46,11 @@ public class StockPrices {
 			System.exit(0);
 		}
 
-		if (System.getProperty("os.name").toUpperCase().contains("WINDOWS")) {
-			fileDelimiter = "\\";
-		} else {
-			fileDelimiter = "/";
-		}
+//		if (System.getProperty("os.name").toUpperCase().contains("WINDOWS")) {
+//			fileDelimiter = "\\";
+//		} else {
+//			fileDelimiter = "/";
+//		}
 
 	}
 

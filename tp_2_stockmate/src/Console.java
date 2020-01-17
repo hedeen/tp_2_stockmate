@@ -81,7 +81,7 @@ public class Console {
 				}
 			}
 			c.loadEPSCalcsInDB(c.getTickersFromTable("stocks"));
-			c.updateForecastMV();
+			c.refreshMVs();
 			System.out.println("Total process took "
 					+ Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / 60L)) + " minutes.");
 		} else {
@@ -106,9 +106,9 @@ public class Console {
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
 	}
 
-	public void updateForecastMV() {
+	public void refreshMVs() {
 		try {
-			System.out.print("Refreshing forecast_mv...");
+			System.out.print("Refreshing material views...");
 			CallableStatement cs = this.con.prepareCall("{call refresh_mvs}");
 			cs.executeQuery();
 			System.out.println("success!");
@@ -286,30 +286,34 @@ public class Console {
 	public void loadCompanyInfo(String[] tickers) {
 		PreparedStatement stmt = null;
 		StockList sl = new StockList();
-		int cnt = 0;
+
 		try {
 			stmt = this.con.prepareStatement("INSERT IGNORE INTO SM2019.stocks(tkr, nfo) VALUES (?, ?)");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
 		for (String t : tickers) {
-			++cnt;
-			System.out.println(String.valueOf(cnt) + " of " + tickers.length + "...(" + t + ")");
+
+			System.out.print("Loading company info for " +  t + "...");
 			try {
 				stmt.setString(1, t.toUpperCase());
 				stmt.setString(2, sl.getDesc(t.toUpperCase()));
 				stmt.executeUpdate();
 				TimeUnit.SECONDS.sleep(1L);
+				System.out.println("success!");
 			} catch (SQLException ex) {
+				System.out.println("SQL error!");
 			} catch (InterruptedException ex2) {
+				System.out.println("Interrupt error!");
 			}
+			
 		}
 	}
 
 	public void loadEPSCalcsInDB(String[] tickers) {
 		PreparedStatement stmt = null;
 		Console c = new Console();
-		int cnt = 0;
+
 		try {
 			PreparedStatement ps = con.prepareStatement("delete from SM2019.calcs");
 			ps.executeUpdate();
@@ -318,9 +322,11 @@ public class Console {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
+		
+		System.out.print("Updating EPS calcs for " + tickers.length + "stocks: [");
 		for (String t : tickers) {
-			++cnt;
-			System.out.println(String.valueOf(cnt) + " of " + tickers.length + "...(" + t + ")");
+
+			System.out.print(t + " ");
 			EPSdata e2 = c.getEPS(t);
 			try {
 				stmt.setString(1, t.toUpperCase());
@@ -370,6 +376,7 @@ public class Console {
 				exc.printStackTrace();
 			}
 		}
+		System.out.println("] DONE!");
 	}
 
 	public double[] epsPayload(int yr, EPSdata e) {
@@ -434,13 +441,14 @@ public class Console {
 		Instant start = Instant.now();
 		for (String t : tickers) {
 			if (++cnt > 1) {
-				System.out.println(String.valueOf(cnt) + " of " + tickers.length + "...(" + t + ") ["
+				System.out.println("Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length + " ["
 						+ Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / (cnt - 1)))
 						+ " secs/stock]");
 			} else {
-				System.out.println(String.valueOf(cnt) + " of " + tickers.length + "...(" + t + ")");
+				System.out.println("Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length);
 			}
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
+			
 			if (allFilings) {
 				fs.bufferAllFilings();
 			} else {
@@ -462,7 +470,7 @@ public class Console {
 					insertSecFiling(this.con, tkr, endDate, periodLength, colName, colData, colType);
 				}
 			}
-			System.out.println(fs.getFilingPreview(","));
+			//System.out.println(fs.getFilingPreview(","));
 		}
 	}
 
