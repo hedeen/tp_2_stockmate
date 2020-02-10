@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="src" path="tp_2_stockmate/src"/>
 	<classpathentry kind="lib" path="tp_2_stockmate/lib/jsoup-1.11.3.jar"/>
 	<classpathentry kind="lib" path="tp_2_stockmate/lib/mariadb-java-client-2.4.1.jar"/>
 	<classpathentry kind="lib" path="tp_2_stockmate/lib/stdlib-package.jar"/>
 	<classpathentry kind="lib" path="tp_2_stockmate/runtime/Stock Mate.jar"/>
+	<classpathentry kind="lib" path="tp_2_stockmate/lib/javax.mail-1.6.2.jar"/>
+	<classpathentry kind="lib" path="tp_2_stockmate/lib/org.apache.commons.io.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -151,11 +151,16 @@ public class FilingSummary
     
     protected String getCIK(String ticker) {
         Pattern pattern = Pattern.compile(".*CIK=(\\d{10}).*");
-        Matcher matcher = pattern.matcher(this.getHTML("https://www.sec.gov/cgi-bin/browse-edgar?CIK=" + ticker + "&Find=Search&owner=exclude&action=getcompany"));
-        if (matcher.find()) {
-            MatchResult result = matcher.toMatchResult();
-            return result.group(1);
-        }
+        try {
+        	Matcher matcher = pattern.matcher(this.getHTML("https://www.sec.gov/cgi-bin/browse-edgar?CIK=" + ticker + "&Find=Search&owner=exclude&action=getcompany"));
+            if (matcher.find()) {
+                MatchResult result = matcher.toMatchResult();
+                return result.group(1);
+            }
+		} catch (NullPointerException ex) {
+			System.out.println("null CIK from sec.gov, aborting this attempt!");
+		}
+        
         return null;
     }
     
@@ -204,8 +209,7 @@ public class FilingSummary
         try {
             doc = Jsoup.parse(this.getHTML(html));
             table = doc.select("table[summary=Data Files]").first();
-        }
-        catch (NullPointerException ex) {}
+        }catch (NullPointerException ex) {}
         if (table != null) {
             Elements rows = table.select("tr");
             for (int i = 1; i < rows.size(); ++i) {

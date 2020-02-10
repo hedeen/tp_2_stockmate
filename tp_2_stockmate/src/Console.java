@@ -13,6 +13,7 @@ import java.sql.CallableStatement;
 import java.time.Duration;
 import java.time.Instant;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.DriverManager;
 import java.sql.Connection;
 
@@ -31,10 +32,14 @@ public class Console {
 
 	public static void main(String[] args) {
 		Instant start = Instant.now();
+		int logId = -1;
+		String[] stocklist;
 		String help = "Argument help: " + System.lineSeparator() + "-a\t update all" + System.lineSeparator()
 				+ "-p\t update most recent filing and recent/historic prices" + System.lineSeparator()
-				+ "-smp\t update most recent filings and prices for best stockmate picks" + System.lineSeparator()
+				+ "-smfp\t update most recent filings and prices for best stockmate picks" + System.lineSeparator()
+				+ "-smp\t update all prices for stockmate picks (NO FILINGS)" + System.lineSeparator()
 				+ "-sma\t update all filings and prices for best stockmate picks" + System.lineSeparator()
+				+ "-em\t email stockmate picks..." + System.lineSeparator()
 				+ "+\t list of stocks to add to tracking, seperated by commas IE stockmate.jar +HOFT,MHK,USAT"
 				+ System.lineSeparator();
 
@@ -44,37 +49,65 @@ public class Console {
 
 			switch (args[0]) {
 			case "-a": {
-				// update all filings and prices
-				c.popSecFilings(c.getTickersFromTable("stocks"), true);
-				sp.updatePrices(c.getTickersFromTable("stocks"));
+				System.out.println("updating all filings and prices...");
+				stocklist = c.getTickersFromTable("stocks");
+				logId = c.LogStart(args[0], stocklist.length);
+				c.popSecFilings(stocklist, true);
+				sp.updatePrices(stocklist);
 				break;
 			}
 			case "-p": {
-				// update most recent filings for everyone, update all prices
-				c.popSecFilings(c.getTickersFromTable("stocks"), false);
-				sp.updatePrices(c.getTickersFromTable("stocks"));
+				System.out.println("updating most recent filings for everyone, update all prices...");
+				stocklist = c.getTickersFromTable("stocks");
+				logId = c.LogStart(args[0], stocklist.length);
+				c.popSecFilings(stocklist, false);
+				sp.updatePrices(stocklist);
+				break;
+			}
+			case "-smfp": {
+				System.out.println("updating most recent filings and prices for stockmate picks...");
+				stocklist = c.getTickersFromTable("top_picks_v");
+				logId = c.LogStart(args[0], stocklist.length);
+				c.popSecFilings(stocklist, false);
+				sp.updateRecentPrices(stocklist);
 				break;
 			}
 			case "-smp": {
-				// update most recent filings and prices for stockmate picks
-				c.popSecFilings(c.getTickersFromTable("top_picks_v"), false);
-				sp.updateRecentPrices(c.getTickersFromTable("top_picks_v"));
+				System.out.println("updating all prices for stockmate picks (NO FILINGS)...");
+				stocklist = c.getTickersFromTable("top_picks_v");
+				logId = c.LogStart(args[0], stocklist.length);
+				sp.updatePrices(stocklist);
 				break;
 			}
 			case "-sma": {
-				// update all filings and prices for best stockmate picks
-				c.popSecFilings(c.getTickersFromTable("top_picks_v"), true);
-				sp.updatePrices(c.getTickersFromTable("top_picks_v"));
+				System.out.println("updating all filings and prices for best stockmate picks...");
+				stocklist = c.getTickersFromTable("top_picks_v");
+				logId = c.LogStart(args[0], stocklist.length);
+				c.popSecFilings(stocklist, true);
+				sp.updatePrices(stocklist);
+				break;
+			}
+			case "-em": {
+				System.out.println("emailing stockmate picks...");
+				stocklist = c.getTickersFromTable("top_picks_v");
+				logId = c.LogStart(args[0], stocklist.length);
+				EmailStatus es = new EmailStatus(stocklist, "/home/pi/Shared/SM/");
+				es.GetHTMLTable(c.StockMatePicksResultSet());
+				c.popSecFilings(stocklist, true);
+				sp.updatePrices(stocklist);
 				break;
 			}
 
 			default:
 				if (args[0].startsWith("+")) {
-					c.loadCompanyInfo(args[0].replace("+", "").split(","));
-					c.popSecFilings(args[0].replace("+", "").split(","), true);
-					sp.updatePrices(args[0].replace("+", "").split(","));
+					stocklist = args[0].replace("+", "").split(",");
+					logId = c.LogStart(args[0], stocklist.length);
+					c.loadCompanyInfo(stocklist);
+					c.popSecFilings(stocklist, true);
+					sp.updatePrices(stocklist);
 					break;
 				} else {
+					logId = c.LogStart("UNK: " + args[0], -1);
 					System.out.println("UNKNOWN COMMAND! " + System.lineSeparator() + help);
 					System.exit(-1);
 					break;
@@ -82,8 +115,9 @@ public class Console {
 			}
 			c.loadEPSCalcsInDB(c.getTickersFromTable("stocks"));
 			c.refreshMVs();
-			System.out.println("Total process took "
-					+ Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / 60L)) + " minutes.");
+			int elapsed_min = (int) Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / 60));
+			c.LogEnd(logId, elapsed_min);
+			System.out.println("Total process took " + elapsed_min + " minutes.");
 		} else {
 			System.out.println(help);
 		}
@@ -106,9 +140,59 @@ public class Console {
 		// System.out.println(latestQtr[0] + "+" + latestQtr[1]);
 	}
 
+	public int LogStart(String command, int records) {
+		// inserts issued command into log table and returns the primary key for update
+		// later
+		int logId = -1;
+		try {
+			PreparedStatement stmt = null;
+			stmt = this.con.prepareStatement("INSERT INTO SM2019.runlog(cmd,num) VALUES (?,?)",
+					Statement.RETURN_GENERATED_KEYS);
+			stmt.setString(1, command);
+			stmt.setInt(2, records);
+			stmt.execute();
+			ResultSet rs = stmt.getGeneratedKeys();
+			rs.next();
+			logId = rs.getInt(1);
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return logId;
+	}
+
+	public void LogEnd(int logId, int minutes) {
+		// inserts issued command into log table and returns the primary key for update
+		// later
+		try {
+			PreparedStatement stmt = null;
+			stmt = this.con.prepareStatement("UPDATE SM2019.runlog SET edt=SYSDATE(), mnt=? WHERE id=?");
+			stmt.setInt(1, minutes);
+			stmt.setInt(2, logId);
+			stmt.execute();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public ResultSet StockMatePicksResultSet() {
+
+		Statement stm = null;
+		ResultSet rst = null;
+		try {
+			stm = con.createStatement();
+			rst = stm.executeQuery("select * from SM2019.top_picks_v");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return rst;
+	}
+
 	public void refreshMVs() {
 		try {
-			System.out.print("Refreshing material views...");
+			System.out.print("Refreshing materialized views...");
 			CallableStatement cs = this.con.prepareCall("{call refresh_mvs}");
 			cs.executeQuery();
 			System.out.println("success!");
@@ -294,7 +378,7 @@ public class Console {
 		}
 		for (String t : tickers) {
 
-			System.out.print("Loading company info for " +  t + "...");
+			System.out.print("Loading company info for " + t + "...");
 			try {
 				stmt.setString(1, t.toUpperCase());
 				stmt.setString(2, sl.getDesc(t.toUpperCase()));
@@ -306,7 +390,7 @@ public class Console {
 			} catch (InterruptedException ex2) {
 				System.out.println("Interrupt error!");
 			}
-			
+
 		}
 	}
 
@@ -322,8 +406,8 @@ public class Console {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-		
-		System.out.print("Updating EPS calcs for " + tickers.length + "stocks: [");
+
+		System.out.print("Updating EPS calcs for " + tickers.length + " stocks: [");
 		for (String t : tickers) {
 
 			System.out.print(t + " ");
@@ -441,14 +525,16 @@ public class Console {
 		Instant start = Instant.now();
 		for (String t : tickers) {
 			if (++cnt > 1) {
-				System.out.println("Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length + " ["
-						+ Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / (cnt - 1)))
-						+ " secs/stock]");
+				System.out.println(
+						"Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length + " ["
+								+ Math.floor((double) (Duration.between(start, Instant.now()).getSeconds() / (cnt - 1)))
+								+ " secs/stock]");
 			} else {
-				System.out.println("Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length);
+				System.out.println(
+						"Obtaining SEC Filings for " + t + "..." + String.valueOf(cnt) + " of " + tickers.length);
 			}
 			FilingSummary fs = new FilingSummary(t, new String[] { "esb", "esd", "ern", "shb", "shd", "pft", "gpf" });
-			
+
 			if (allFilings) {
 				fs.bufferAllFilings();
 			} else {
@@ -470,7 +556,7 @@ public class Console {
 					insertSecFiling(this.con, tkr, endDate, periodLength, colName, colData, colType);
 				}
 			}
-			//System.out.println(fs.getFilingPreview(","));
+			// System.out.println(fs.getFilingPreview(","));
 		}
 	}
 
