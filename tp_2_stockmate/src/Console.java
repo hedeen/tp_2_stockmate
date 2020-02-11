@@ -562,6 +562,8 @@ public class Console {
 
 	private static boolean insertSecFiling(Connection con, String tkr, LocalDate endDate, int prd, String colName,
 			String colData, String colType) {
+		if (colData == "''" || colData.isBlank() || colData.isEmpty())
+			return false;
 		PreparedStatement stmt = null;
 		Timestamp ldt = new Timestamp(System.currentTimeMillis());
 		try {

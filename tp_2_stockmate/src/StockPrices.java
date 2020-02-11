@@ -108,7 +108,8 @@ public class StockPrices {
 					stmt.setString(1, ticker.toUpperCase()); // ticker
 					stmt.setDate(2, Date.valueOf((priceRecentData.get(j)[0]))); // close date
 					stmt.setDouble(3, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close price
-					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close pr if duped
+					stmt.setDouble(4, Double.parseDouble(priceRecentData.get(j)[5].replace(",", ""))); // close pr if
+																										// duped
 					stmt.setTimestamp(5, new Timestamp(System.currentTimeMillis())); // load date if duped
 					stmt.executeUpdate();
 					entryCount++;
@@ -361,7 +362,7 @@ public class StockPrices {
 			finally {
 				try {
 					is.close();
-				} catch (IOException ioe) {
+				} catch (Exception e) {
 				}
 			}
 
