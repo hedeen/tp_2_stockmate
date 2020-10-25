@@ -31,11 +31,21 @@ public class Console {
 	}
 
 	public static void main(String[] args) {
+		
+		//displayConsole(args);
+		Console c = new Console();
+		String[] stocklist = new String[] {"ADS"};
+		c.popSecFilings(stocklist, true);
+	}
+	
+	public static void displayConsole(String[] args) {
 		Instant start = Instant.now();
 		int logId = -1;
 		String[] stocklist;
 		String help = "Argument help: " + System.lineSeparator() + "-a\t update all" + System.lineSeparator()
-				+ "-p\t update most recent filing and recent/historic prices" + System.lineSeparator()
+				+ "-p\t update all recent/historic prices" + System.lineSeparator()
+				+ "-p7\t update prices that are older than a week" + System.lineSeparator()
+				+ "-fp\t update most recent filing and recent/historic prices" + System.lineSeparator()
 				+ "-smfp\t update most recent filings and prices for best stockmate picks" + System.lineSeparator()
 				+ "-smp\t update all prices for stockmate picks (NO FILINGS)" + System.lineSeparator()
 				+ "-sma\t update all filings and prices for best stockmate picks" + System.lineSeparator()
@@ -57,6 +67,22 @@ public class Console {
 				break;
 			}
 			case "-p": {
+				System.out.println("updating all prices...");
+				stocklist = c.getTickersFromTable("stocks");
+				logId = c.LogStart(args[0], stocklist.length);
+				sp.updatePrices(stocklist);
+				break;
+			}
+			case "-p7": {
+				System.out.println("updating prices that haven't seen an update in 7 days...");
+				stocklist = c.getTickersFromQuery("SELECT tkr FROM currentprice_v WHERE DATEDIFF(NOW(),cdt)>=7");
+				logId = c.LogStart(args[0], stocklist.length);
+				sp.updatePrices(stocklist);
+				break;
+			}
+			// sp.updatePrices(c.getTickersFromQuery("SELECT tkr FROM stocks WHERE tkr NOT
+			// IN (SELECT tkr FROM rprices)"));
+			case "-fp": {
 				System.out.println("updating most recent filings for everyone, update all prices...");
 				stocklist = c.getTickersFromTable("stocks");
 				logId = c.LogStart(args[0], stocklist.length);
@@ -315,7 +341,7 @@ public class Console {
 		ArrayList<Double> vals = new ArrayList<Double>();
 		try {
 			ResultSet rs = this.con
-					.prepareStatement("SELECT YEAR(edt) yr, eps FROM SM2019.eps_v WHERE prd = 12 AND tkr='" + ticker
+					.prepareStatement("SELECT YEAR(INTERVAL 15 DAY + edt) yr, eps FROM SM2019.eps_v WHERE prd = 12 AND tkr='" + ticker
 							+ "' ORDER BY 1 DESC;")
 					.executeQuery();
 			while (rs.next()) {
@@ -556,7 +582,7 @@ public class Console {
 					insertSecFiling(this.con, tkr, endDate, periodLength, colName, colData, colType);
 				}
 			}
-			// System.out.println(fs.getFilingPreview(","));
+			System.out.println(fs.getFilingPreview(","));
 		}
 	}
 
