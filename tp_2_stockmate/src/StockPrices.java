@@ -22,6 +22,7 @@ public class StockPrices {
 			"EYW9JROENT30B8ON", "RTFY5W8YVE6DAF2O", "KREGHQ3FRYT09H4S", "SLN3EW4L0UXQ38F5", "DAB7RANDIUK2SSCX",
 			"OW5A8ZQZSVBHJG5L" };
 	private Connection con = null;
+	private int consecutiveFails=0;
 	// private Statement stm = null;
 //	private String fileDelimiter;
 	private int waitMilliSecs = 0;
@@ -92,8 +93,24 @@ public class StockPrices {
 //				priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
 //						+ ticker + "&apikey=" + api + "&datatype=csv");
 //			}
-
-			System.out.print("; API calls successful");
+			if(consecutiveFails>=4) {
+				System.out.print("; API calls failed 4 times, it is likely we exeeded the allottment for the day");
+				
+				try {
+					stmt.close();
+					con.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				System.out.println("; ABORTING!");
+				return;
+				
+			}else {
+				System.out.print("; API calls complete");
+			}
+			
 
 			// recent data
 			try {
@@ -194,7 +211,23 @@ public class StockPrices {
 			priceHistoricData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY_ADJUSTED&symbol="
 					+ ticker + "&apikey=" + api + "&datatype=csv");
 
-			System.out.print("; API calls successful");
+			if(consecutiveFails>=4) {
+				System.out.print("; API calls failed 4 times, it is likely we exeeded the allottment for the day");
+				
+				try {
+					stmt.close();
+					con.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				System.out.println("; ABORTING!");
+				return;
+				
+			}else {
+				System.out.print("; API calls complete");
+			}
 
 			// historic data
 			try {
@@ -272,7 +305,23 @@ public class StockPrices {
 			priceRecentData = jget("https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol="
 					+ ticker + "&apikey=" + api + "&datatype=csv");
 
-			System.out.print("; API calls successful");
+			if(consecutiveFails>=4) {
+				System.out.print("; API calls failed 4 times, it is likely we exeeded the allottment for the day");
+				
+				try {
+					stmt.close();
+					con.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				System.out.println("; ABORTING!");
+				return;
+				
+			}else {
+				System.out.print("; API calls complete");
+			}
 
 			// recent data
 			try {
@@ -338,6 +387,7 @@ public class StockPrices {
 					if (waitMilliSecs > 20000) {
 						System.out.print("[skipped]");
 						waitMilliSecs = 0;
+						consecutiveFails=consecutiveFails+1;
 						break;
 					} else if (line.split(",").length < 3) {
 						waitMilliSecs = waitMilliSecs + 1000;
@@ -345,6 +395,7 @@ public class StockPrices {
 					} else {
 						System.out.print("[" + waitMilliSecs / 1000 + "]");
 						waitMilliSecs = waitMilliSecs - 250;
+						consecutiveFails =0;
 						break;
 					}
 				}

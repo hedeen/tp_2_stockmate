@@ -32,10 +32,10 @@ public class Console {
 
 	public static void main(String[] args) {
 		
-		//displayConsole(args);
-		Console c = new Console();
-		String[] stocklist = new String[] {"ADS"};
-		c.popSecFilings(stocklist, true);
+		displayConsole(args);
+		//Console c = new Console();
+		//String[] stocklist = new String[] {"ADS"};
+		//c.popSecFilings(stocklist, true);
 	}
 	
 	public static void displayConsole(String[] args) {
